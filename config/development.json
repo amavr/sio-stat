@@ -3,63 +3,53 @@
     "api": {
         "dbname": "dalpha"
     },
-    "producers": {
-        "fake_client": {
-            "enabled": false,
-            "tag": "FAKE.CLI",
-            "interval": 3000,
-
-            "delay": 100
+    "pages": {
+        "state_handle": {
+            "url": "handle-state",
+            "title": "Состояние обработки"
         },
-        "file_client": {
-            "enabled": true,
-            "tag": "FILE.CLI",
-            "interval": 200,
-
-            "x-watch_dir": "13.1",
-            "x-backup_dir": "13.1.backup",
-            "watch_dir": "watch",
-            "backup_dir": "watch.backup"
+        "err_handle": {
+            "url": "handle-error-info",
+            "title": "Ошибки обработки"
         },
-        "http_client": {
-            "enabled": false,
-            "tag": "HTTP.CLI",
-            "interval": 3000,
-
-            "url": "http://localhost:3002/api/v1/msg",
-            "xurl": "http://localhost:3040/next"
+        "receiving": {
+            "url": "receiving",
+            "title": "Прием сообщений"
+        },
+        "tool_sql": {
+            "url": "sql-format",
+            "title": "Форматирование SQL"
         }
     },
-    "consumers": {
-        "test_consumer": {
-            "enabled": false,
-            "parallel": 5,
-
-            "delay": 2000
+    "roles": {
+        "admin": {
+            "menu": [
+                {
+                    "title": "Статистика",
+                    "pages": [
+                        "state_handle",
+                        "receiving"
+                    ]
+                },
+                {
+                    "title": "Инструменты",
+                    "pages": [
+                        "err_handle",
+                        "tool_sql"
+                    ]
+                }
+            ]
         },
-        "statistics": {
-            "enabled": true,
-            "parallel": 100,
-
-            "stat_path": "stat/masterdata-stat.json",
-            "save_interval": 10000
-        },
-        "message_handler": {
-            "enabled": true,
-            "parallel": 10,
-
-            "dbname": "dalpha",
-            "save_debug": true,
-            "msg_dir": "results/msg",
-            "err_dir": "results/err",
-            "log_dir": "results/log",
-            "dbg_dir": "results/dbg"
-        },
-        "message_recorder": {
-            "enabled": false,
-            "parallel": 100,
-
-            "interval": 10000
+        "manager": {
+            "menu": [
+                {
+                    "title": "Статистика",
+                    "pages": [
+                        "state_handle",
+                        "receiving"
+                    ]
+                }
+            ]
         }
     },
     "databases": {
@@ -107,6 +97,7 @@
                 "password": "qwe123",
                 "cs": [
                     " (DESCRIPTION = ",
+                    "    (CONNECT_TIMEOUT=240 sec)(RETRY_COUNT=3)",
                     "    (ADDRESS_LIST = ",
                     "      (ADDRESS = (PROTOCOL = TCP)(HOST = cd-vm-talpha.energo.ru)(PORT = 1521))",
                     "    )",

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="js/utils.js"></script>
+    <script src="js/jquery-3.5.1.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-datepicker3.min.css">
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/bootstrap-datepicker.min.js"></script>
+    <script src="js/bootstrap-datepicker.ru.min.js"></script>
+    <script src="js/moment.js"></script>
+
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <title>Отладка загрузки</title>
+</head>
+
+<body>
+    <h1 class="bd-content-title">Отладка загрузки</h1>
+    <div id="loader" class="loader loader-default"></div>
+    <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+    <div class="container-fluid">
+        <h3 class="bd-content-title">Структура принятых данных</h3>
+        <div style="text-align: center">
+            <table style="width: 100%;">
+                <tr>
+                    <td style="width: 33%;">
+                        <div id="pie_1"></div>
+                    </td>
+                    <td style="width: 33%;">
+                        <div id="pie_2"></div>
+                    </td>
+                    <td style="width: 33%;">
+                        <div id="pie_3"></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <h3 class="bd-content-title">Показатели обработки</h3>
+        <div id="box_1" style="width: 100%; height: 400px"></div>
+        <div id="tab_1" style="text-align: center"></div>
+        <div id="box_2" style="width: 100%; height: 400px"></div>
+        <div id="tab_2" style="text-align: center"></div>
+        <div id="box_3" style="width: 100%; height: 400px"></div>
+        <div id="tab_3" style="text-align: center;"></div>
+        <div style="margin: 52px auto; padding: 12px 0; text-align: center;background-color: #efefef;">Сформировано <span id="time_label"></span></div>
+    </div>
+
+    <div id="dlg" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">SQL</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre id="dlgText"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const Ctrl = function () {
+            const me = this;
+
+            this.pies = [];
+            this.charts = [];
+            this.tabs = [];
+
+            this.wait = function (doWait) {
+                if (doWait) {
+                    document.getElementById('loader').classList.add('is-active');
+                }
+                else {
+                    document.getElementById('loader').classList.remove('is-active');
+                }
+            }
+
+            this.request = async function (data, callback) {
+                await $.get('/api/v1/dbg-load61').done(function (data) {
+                    callback(data);
+                });
+            }
+
+            this.drawLines = function (chartTitle, chart, data, options) {
+                options.title = chartTitle
+                chart.draw(data, options);
+            }
+
+            this.prepareData = function (rows) {
+                const res = {
+                    common: [
+                        { title: 'Договоры', rows: [['Поток', 'Кол-во']] },
+                        { title: 'Объекты', rows: [['Поток', 'Кол-во']] },
+                        { title: 'Приборы', rows: [['Поток', 'Кол-во']] },
+                    ],
+                    parts: {}
+                };
+
+                if (rows && rows.length > 0) {
+                    const first_row = rows[0];
+                    const titles = ['Наименование', 'Найдено', 'Добавлено', 'Без пары в ИСЭ', 'Ошибки обр', 'Ошибки учета'];
+
+                    for (const i in rows) {
+                        const row = rows[i];
+
+                        if (row.KOD_OBJTYPE === 1) {
+                            res.common[0].rows.push([row.FLOW_TYPE, row.RECEIVE]);
+                        }
+                        else if (row.KOD_OBJTYPE === 3) {
+                            res.common[1].rows.push([row.FLOW_TYPE, row.RECEIVE]);
+
+                        }
+                        else if (row.KOD_OBJTYPE === 9) {
+                            res.common[2].rows.push([row.FLOW_TYPE, row.RECEIVE]);
+                        }
+
+                        const chartTitle = row.FLOW_TYPE;
+                        if (res.parts[chartTitle] === undefined) {
+                            res.parts[chartTitle] = [titles];
+                        }
+                        const total = row.RECEIVE;
+                        res.parts[chartTitle].push([
+                            row.NAME,
+                            row.LINKED,
+                            row.ADDED,
+                            row.NO_LINKS,
+                            row.ERRORS,
+                            row.ERR_AND_SEG
+                        ]);
+                    }
+                }
+                return res;
+            }
+
+            this.showData = function () {
+
+                const chart_options = {
+                    curveType: 'function',
+                    legend: {
+                        position: 'bottom'
+                    },
+                    isStacked: 'percent',
+                    series: {
+                        0: { color: '#363' },
+                        1: { color: '#090' },
+                        2: { color: '#fb0' },
+                        3: { color: '#f33' },
+                        4: { color: '#900' },
+                    }
+                }
+
+                const data = {};
+                me.request(data, function (res) {
+
+                    const dt = new Date();
+                    $('#time_label').text(dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString());
+
+                    // console.log(res);
+                    const data = me.prepareData(res);
+                    // console.log(data);
+                    const keys = Object.keys(data.parts);
+                    for (const i in keys) {
+                        const key = keys[i];
+                        const perc_data = google.visualization.arrayToDataTable(data.common[i].rows);
+                        me.pies[i].draw(perc_data, { title: data.common[i].title, height: 400, width: '100%' });
+
+
+                        const process_data = google.visualization.arrayToDataTable(data.parts[key]);
+                        me.drawLines(key, me.charts[i], process_data, chart_options);
+                        me.tabs[i].draw(process_data, { showRowNumber: true, height: '100%' });
+                    }
+                });
+            }
+
+            this.constructor = function () {
+                this.pies.push(new google.visualization.PieChart(document.getElementById('pie_1')));
+                this.pies.push(new google.visualization.PieChart(document.getElementById('pie_2')));
+                this.pies.push(new google.visualization.PieChart(document.getElementById('pie_3')));
+
+                this.charts.push(new google.visualization.BarChart(document.getElementById('box_1')));
+                this.charts.push(new google.visualization.BarChart(document.getElementById('box_2')));
+                this.charts.push(new google.visualization.BarChart(document.getElementById('box_3')));
+
+                this.tabs.push(new google.visualization.Table(document.getElementById('tab_1')));
+                this.tabs.push(new google.visualization.Table(document.getElementById('tab_2')));
+                this.tabs.push(new google.visualization.Table(document.getElementById('tab_3')));
+                me.showData();
+            }
+
+            this.constructor();
+        }
+
+
+        window.addEventListener('load', function () {
+            console.log('READY');
+        });
+
+        $(document).ready(function () {
+            console.log('JQUERY READY');
+
+        });
+
+        document.addEventListener('DOMDocumentLoaded', () => {
+        });
+
+
+        google.charts.load('current', { 'packages': ['corechart', 'table'] });
+        // google.charts.load('current', {'packages':['table']});
+        google.charts.setOnLoadCallback(() => {
+
+            const ctrl = new Ctrl();
+
+            $('.date input').datepicker({
+                format: 'yyyy-mm-dd',
+                language: "ru",
+                orientation: "bottom left",
+                autoclose: true
+            });
+
+            $(document).ajaxStart(function () {
+                ctrl.wait(true);
+            });
+
+            $(document).ajaxComplete(function () {
+                ctrl.wait(false);
+            });
+        });
+
+    </script>
+
+</body>
+
+</html>

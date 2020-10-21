@@ -63,6 +63,27 @@ module.exports = class DBHelper {
         return res;
     }
 
+    async select(sql, binds){
+        const res = {
+            success: false,
+            error: null,
+            data: null
+        };
+        const dbcon = await this.getConnection();
+        try{
+            const result = await dbcon.execute(sql, binds, { autoCommit: true, outFormat: oracledb.OBJECT });
+            res.data = result.rows;
+            res.success = true;
+        }
+        catch(ex){
+            res.error = ex.message;
+        }
+        finally{
+            await this.close(dbcon);
+        }
+        return res;
+    }
+
     /**
      * Пакетная запись в БД.
      * !!! Перед вызовом метода нужно подключиться к базе - db_helper.connect(), а после - отключиться !!!

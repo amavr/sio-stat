@@ -1,0 +1,16 @@
+body{
+    font-family: Montserrat, Verdana, Geneva, Tahoma, sans-serif !important;
+}
+
+.w3-sidebar{
+    max-width: 260px !important;
+    width: 260px;
+}
+
+#main {
+    margin-left: 250px;
+}
+
+.sub-items {
+    margin-left: 20px;
+}

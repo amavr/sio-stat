@@ -35,5 +35,11 @@ module.exports = class Utils {
     static getTimeLabel(fmt){
         return moment().format(fmt ? fmt : 'YYYYMMDD-HHmmss-SSS');
     }
+
+    static createObjectWithKeys(keyArray){
+        const res = {};
+        keyArray.forEach(item => res[item] = 0);
+        return res;
+    }
 }
 

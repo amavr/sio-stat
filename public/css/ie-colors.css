@@ -1,0 +1,9 @@
+.ie-orange, .ie-hover-orange:hover {
+    color: #fff !important;
+    background-color: #F58532 !important;
+}
+
+
+.w3-sidebar .w3-bar-item.active {
+    background-color: #ffd9bd !important;    
+}

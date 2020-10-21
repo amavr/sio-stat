@@ -17,20 +17,6 @@ if(cfg.api.dbname){
     cfg.api.db = cfg.databases[cfg.api.dbname].hrPool;
 }
 
-for(const key of Object.keys(cfg.consumers)){
-    cfg.consumers[key].work_dir = cfg.work_dir;
-    if(cfg.consumers[key].dbname){
-        cfg.consumers[key].db = cfg.databases[cfg.consumers[key].dbname].hrPool;
-    }
-}
-
-for(const key of Object.keys(cfg.producers)){
-    cfg.producers[key].work_dir = cfg.work_dir;
-    if(cfg.producers[key].dbname){
-        cfg.producers[key].db = cfg.databases[cfg.producers[key].dbname].hrPool;
-    }
-}
-
 log4js.configure({
     appenders: {
         app: { type: 'dateFile', filename: path.join(cfg.work_dir, cfg.log_dir, 'md.log'), pattern: '.yyyy-MM-dd', daysToKeep: 7 },

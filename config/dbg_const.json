@@ -1,0 +1,38 @@
+{
+    "users": [
+        {"admin": {
+            "password": "admin",
+            "roles": ["admin"]
+        }},
+        {"developer": {
+            "password": "developer",
+            "roles": ["developer"]
+        }},
+        {"manager": {
+            "password": "manager",
+            "roles": ["manager"]
+        }}
+    ],
+    "pages": [
+        {   "route": "handle-stat.html",
+            "title": "Общая",
+            "roles": ["admin", "manager", "developer"],
+            "group": "Статистика"
+        },
+        {   "route": "errors.html",
+            "title": "Ошибки",
+            "roles": ["admin", "developer"],
+            "group": "Разработка"
+        },
+        {   "route": "counters.html",
+            "title": "Счетчики",
+            "roles": ["admin", "developer"],
+            "group": "Статистика"
+        },
+        {   "route": "dbg-load61.html",
+            "title": "Обработка",
+            "roles": ["admin", "developer"],
+            "group": "Статистика"
+        }
+    ]
+}

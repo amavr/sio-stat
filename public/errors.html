@@ -4,14 +4,13 @@
 <head>
     <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
     <link rel="stylesheet" href="css/loader-default.css">
-    <link rel="stylesheet" href="css/style.css">
 
-    <script src="js/handlebars.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/jquery-3.5.1.slim.min.js"></script>
     <script src="js/popper.min.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
 
 
     <script async="false" src="js/ajax.js"></script>
@@ -27,12 +26,12 @@
         <div class="row" style="background-color: #eee;padding-top: 20px;">
             <div class="col-sm">
                 <form>
-                    <div class="form-group row">
-                        <label for="beg_id" class="col-sm-1 col-form-label col-form-label-sm">Start ID</label>
+                    <div class="form-group row" style="padding-left: 20px;">
+                        <label for="beg_id" class="col-sm-1 col-form-label col-form-label-sm" style="text-align: right;">Start ID</label>
                         <div class="col-sm-1">
                             <input type="number" class="form-control form-control-sm" id="beg_id" placeholder="">
                         </div>
-                        <label for="end_id" class="col-sm-1 col-form-label col-form-label-sm">Last ID</label>
+                        <label for="end_id" class="col-sm-1 col-form-label col-form-label-sm" style="text-align: right;">Last ID</label>
                         <div class="col-sm-1">
                             <input type="number" class="form-control form-control-sm" id="end_id" placeholder="">
                         </div>
@@ -44,66 +43,29 @@
         </div>
         <div>
             <div class="row">
-                <div class="col-sm" style="height: 400px; overflow-y: scroll;">
-                    <div id="accordeon">
-                        <!--
-                        <div class="card">
-                            <div class="card-header" id="headingOne">
-                                <h5 class="mb-0">
-                                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne"
-                                        aria-expanded="true" aria-controls="collapseOne">
-                                        2020-09-17 ИЖС сопоставленные
-                                    </button>
-                                </h5>
-                            </div>
-                            <div id="collapseOne" class="collapse show" aria-labelledby="headingOne"
-                                data-parent="#accordion">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md fld_code">Счетчик №1</div>
-                                        <div class="col-md fld_val">12930</div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md fld_code">Счетчик №2</div>
-                                        <div class="col-md fld_val">12</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-header" id="headingTwo">
-                                <h5 class="mb-0">
-                                    <button class="btn btn-link" data-toggle="collapse" data-target="#collapseTwo"
-                                        aria-expanded="true" aria-controls="collapseTwo">
-                                        2020-09-17 ИЖС сопоставленные
-                                    </button>
-                                </h5>
-                            </div>
-                            <div id="collapseTwo" class="collapse show" aria-labelledby="headingTwo"
-                                data-parent="#accordion">
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md fld_code">Счетчик №1</div>
-                                        <div class="col-md fld_val">12930</div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md fld_code">Счетчик №2</div>
-                                        <div class="col-md fld_val">12</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        -->
-                    </div>
-
+                <div class="col-sm-4" style="height: 400px; ">
+                    <ul id="labels_box" class="list-group" style="overflow-y: scroll; height: 380px;">
+                    </ul>
                 </div>
-                <div class="col-sm">
+                <div class="col-sm-6">
                     <div id="chart_box" style="height: 400px;"></div>
+                </div>
+                <div class="col-sm-2" style="height: 400px;">
+                    <ul id="trans_box" class="list-group" style="overflow-y: scroll; height: 380px;">
+                    </ul>
                 </div>
             </div>
             <div id="col_tab" class="xcol-sm">
-                <h3>Transaction ID: <span id="tran_id">-</span></h3>
+                <!-- <h3>Transaction ID: <span id="tran_id">-</span></h3> -->
+                <div class="row">
+                    <label for="tran_id" class="col-sm-1 col-form-label col-form-label-sm" style="text-align: right;">Transaction ID</label>
+                    <div class="col-sm-2">
+                        <input class="form-control form-control-sm" id="tran_id" placeholder="Enter transact ID">
+                    </div>
+                    <div class="col-sm-1"><button id="btn_by_tran" class="btn btn-primary" type="button">Запросить</button></div>
+                    <div class="col-sm-1"><button id="btn_last_tran" class="btn btn-primary" type="button">Последняя</button></div>
+                </div>
+
                 <table class="table">
                     <thead>
                         <tr>
@@ -192,6 +154,11 @@
             </div>
         </div>
 
+        <ul id="labelsItem">
+            <li class="list-group-item lab-item"></li>
+        </ul>
+
+
         <div class="block_row">
             <tr class="##lvl##">
                 <td>##tag##</td>
@@ -258,29 +225,42 @@
                 $('#dlg').modal('show');
             }
 
-            this.showAccordeon = function(labels){
-                const box = document.getElementById('accordeon');
-                const t_card = document.querySelector('#templates .card');
-                const t_head = t_card.querySelector('.card-header');
-                const t_btn = t_card.querySelector('button');
-                const t_body = t_card.querySelector('.collapse');
-                for(const lab of labels){
-                    const hid = 'h-' + lab.ID;
-                    const bid = 'b-' + lab.ID;
-                    t_head.setAttribute('id', hid);
-
-                    t_btn.textContent = lab.DT.substr(0, 10) +' '+ lab.DT.substr(11, 5) + '  ['+ lab.TYPE + '] '+ lab.NAME;
-                    t_btn.setAttribute('data-target', '#' + bid);
-                    t_btn.setAttribute('aria-controls', bid);
-                    t_body.setAttribute('id', bid);
-                    t_body.setAttribute('aria-labelledby', hid);
-
-                    const clone = document.importNode(t_card, true);
-                    box.appendChild(clone);
+            this.setClickItemsListener = function (items, callback, toRemove) {
+                for (const item of items) {
+                    if (toRemove) {
+                        item.removeEventListener('click', callback);
+                    }
+                    else {
+                        item.addEventListener('click', callback);
+                    }
                 }
             }
 
-            this.showBlockRows = function (rows, onClick) {
+            this.setActiveLabel = function(lab_id){
+                $('#labels_box li.lab-item').removeClass('active');
+                $('#labels_box li#'+ lab_id).addClass('active');
+            }
+
+            this.showLabels = function (labels, onClick) {
+                const box = document.getElementById('labels_box');
+
+                this.setClickItemsListener(box.querySelectorAll('li.lab-item'), onClick, true);
+                box.innerHTML = '';
+
+                const t_lab = document.querySelector('#templates #labelsItem li');
+
+                for (const lab of labels) {
+                    const clone = document.importNode(t_lab, true);
+                    clone.setAttribute('id', lab.ID);
+                    clone.innerHTML = `${lab.DT.substr(0, 16).replace('T', ' ')}<span style="padding-left: 24px;">${lab.NAME}</span>`;
+                    box.appendChild(clone);
+                }
+
+                this.setClickItemsListener(box.querySelectorAll('li.lab-item'), onClick);
+
+            }
+
+            this.showTransactRows = function (rows, onClick) {
                 // const html = $('#templates .block_row').html();
                 const html = '<tr class="##lvl##"><td>##dt##</td><td>##tag##</td><td>##a_beg####msg####a_end##</td><td>##key##</td></tr>';
                 const box = document.querySelector('#col_tab .tab_rows');
@@ -291,7 +271,7 @@
 
                 const divs = [];
                 if (rows.length > 0) {
-                    $('#tran_id').text(rows[0].TRAN_ID);
+                    $('#tran_id').val(rows[0].TRAN_ID);
                 }
                 for (const row of rows) {
                     const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.length > 80;
@@ -315,6 +295,29 @@
                 }
             }
 
+            this.setActiveTransact = function(tran_id){
+                $('#trans_box li.lab-item').removeClass('active');
+                $('#trans_box li#'+ tran_id).addClass('active');
+            }
+
+            this.showTransactList = function (rows, onClick) {
+                const box = document.getElementById('trans_box');
+
+                this.setClickItemsListener(box.querySelectorAll('li.lab-item'), onClick, true);
+                box.innerHTML = '';
+
+                const t_lab = document.querySelector('#templates #labelsItem li');
+
+                for (const row of rows) {
+                    const clone = document.importNode(t_lab, true);
+                    clone.setAttribute('id', row.TRAN_ID);
+                    clone.innerHTML = row.DT.substr(0, 16).replace('T', ' ');
+                    box.appendChild(clone);
+                }
+
+                this.setClickItemsListener(box.querySelectorAll('li.lab-item'), onClick);
+            }
+
             this.constructor = function () {
             }
 
@@ -326,6 +329,8 @@
             const view = new View();
             let chart = null;
             let chart_data = null;
+
+            let lab_id = undefined;
 
             this.saveCondition = function (cond) {
                 setCookie('condition', JSON.stringify(cond));
@@ -342,16 +347,16 @@
                 return JSON.parse(txt);
             }
 
-            this.getBlockByError = async function (filter) {
+            this.publishTransactRows = async function (tran_id) {
                 view.wait(true);
                 try {
+                    view.setActiveTransact(tran_id);
                     const options = {
-                        method: "POST",
-                        body: JSON.stringify(filter),
+                        method: "GET",
                         headers: { "content-type": "application/json" }
                     };
-                    const rows = await me.ajax.query("/api/v1/transact", options);
-                    view.showBlockRows(rows, me.onRowClick);
+                    const rows = await me.ajax.query(`/api/v1/transact/${tran_id}`, options);
+                    view.showTransactRows(rows, me.onRowClick);
                 }
                 catch (ex) {
                     view.showError(ex.message);
@@ -361,16 +366,85 @@
                 }
             }
 
+            this.publishTransactList = async function (filter) {
+                view.wait(true);
+                try {
+                    const options = {
+                        method: "POST",
+                        body: JSON.stringify(filter),
+                        headers: { "content-type": "application/json" }
+                    };
+                    const rows = await me.ajax.query("/api/v1/error-trans", options);
+                    view.showTransactList(rows, me.onTranListClick);
+                    if(rows.length > 0){
+                        me.publishTransactRows(rows[0].TRAN_ID);
+                    }
+                    else{
+                        view.wait(false);
+                    }
+                }
+                catch (ex) {
+                    view.showError(ex.message);
+                }
+            }
+
+            this.getLastTransact = async function(){
+                let tran_id = 0;
+                view.wait(true);
+                try {
+                    const options = {
+                        method: "GET",
+                        headers: { "content-type": "application/json" }
+                    };
+                    const data = await me.ajax.query("/api/v1/transact/last", options);
+                    tran_id = data.TRAN_ID;
+                }
+                catch (ex) {
+                    view.showError(ex.message);
+                }
+                finally {
+                    view.wait(false);
+                }
+                return tran_id;
+            }
+
+            this.getLabelLogID = async function () {
+                console.log(this);
+                const options = {
+                    method: "GET",
+                    headers: { "content-type": "application/json" }
+                };
+
+                lab_id = this.id;
+                view.setActiveLabel(lab_id);
+
+                view.wait(true);
+                try {
+                    const rows = await me.ajax.query("/api/v1/times/labels/log/" + this.id, options);
+                    if (rows.length > 0) {
+                        $('#beg_id').val(rows[0].BEG_ID);
+                        $('#end_id').val(rows[0].END_ID);
+                        const cond = view.getTopCondition();
+                        await me.getStat(cond);
+                    }
+                }
+                finally {
+                    view.wait(false);
+                }
+            }
+
+            this.publishLabels = async function(){
+                const labels = await me.ajax.query("/api/v1/times/labels", { method: "GET" });
+                console.log(labels);
+                view.showLabels(labels, this.getLabelLogID);
+                // view.setActiveLabel(lab_id);
+            }
+
             this.getStat = async function (filter) {
                 const cond = filter;
                 this.saveCondition(cond);
                 view.wait(true);
                 try {
-                    const labels = await me.ajax.query("/api/v1/times/labels", { method: "GET"});
-                    console.log(labels);
-                    view.showAccordeon(labels);
-
-
 
                     const options = {
                         method: "POST",
@@ -390,11 +464,12 @@
                     };
                     chart.draw(chart_data, draw_options);
 
-                    view.showBlockRows([], me.onRowClick);
+                    view.showTransactRows([], me.onRowClick);
 
                 }
                 catch (ex) {
                     view.showError(ex.message);
+                    // view.wait(false);
                 }
                 finally {
                     view.wait(false);
@@ -424,6 +499,12 @@
                 return false;
             }
 
+            this.onTranListClick = async function (e) {
+                e.preventDefault();
+                await me.publishTransactRows(this.id);
+                return false;
+            }
+
             this.onSubmit = function () {
                 const cond = view.getTopCondition();
                 this.getStat(cond);
@@ -435,7 +516,7 @@
                     var value = chart_data.getValue(selectedItem.row, 0);
                     const cond = view.getTopCondition();
                     cond.msg = value;
-                    me.getBlockByError(cond);
+                    me.publishTransactList(cond);   
                 }
             }
 
@@ -444,10 +525,13 @@
 
                 chart = new google.visualization.PieChart(document.getElementById('chart_box'));
                 google.visualization.events.addListener(chart, 'select', me.onChartSelect);
+                google.visualization.events.addListener(chart, 'ready', () => {
+                    view.wait(false);
+                });
 
                 const cond = me.loadCondition();
                 view.showCondition(cond);
-                me.getStat(cond);
+                me.publishLabels();
             }
 
             this.constructor = function () {
@@ -462,7 +546,7 @@
         });
 
         document.addEventListener('DOMDocumentLoaded', () => {
-            
+
             document.getElementById('chart_box').addEventListener('click', () => {
                 document.getElementById('chart_box').style.display = 'none';
             });
@@ -474,7 +558,27 @@
             const ctrl = new Ctrl();
             document.getElementById('btn_request').addEventListener('click', () => {
                 console.log('btn request clicked');
-                console.log(ctrl.onSubmit());
+                ctrl.onSubmit();
+            });
+            $('#btn_show_tran').click(() => {
+                ctrl.publishTransactRows($('#tran_id').val());
+            });
+            $('#tran_id').on("keyup", function (event) {
+                // Number 13 is the "Enter" key on the keyboard
+                if (event.keyCode === 13) {
+                    // Cancel the default action, if needed
+                    event.preventDefault();
+                    // Trigger the button element with a click
+                    ctrl.publishTransactRows($('#tran_id').val());
+                }
+            });
+            $('#btn_by_tran').click(() => {
+                ctrl.publishTransactRows($('#tran_id').val());
+            });
+            $('#btn_last_tran').click(async () => {
+                const tran_id = await ctrl.getLastTransact();
+                $('#tran_id').val(tran_id);
+                // ctrl.publishTransactRows(tran_id);
             });
         });
 

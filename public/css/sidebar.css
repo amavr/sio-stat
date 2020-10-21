@@ -30,7 +30,7 @@ p {
 
 #sidebar {
     /* don't forget to add all the previously mentioned styles here too */
-    background: #f3f3f3;
+    background: #fafafa;
     color: #000;
     transition: all 0.3s;
     font-family: 'Montserrat';
@@ -43,13 +43,26 @@ p {
     left: 0;
     /* top layer */
     z-index: 9999;    
+    box-shadow: var(--bs-sm);
+    border-right: #d2d2d2 1px solid;
+    box-shadow: 0 0 15px -8px #888;
 }
 
 #sidebar .sidebar-header {
     padding: 20px;
-    background: #4c4c4c;
-    color: #F58532;
+    background: #F58532;
+    color: #fff;
+    /* background: #1f1f1f;
+    color: #F58532; */
+    /* background: #e4e4e4;
+    color: #ef7115; */
+
     font-family: 'Arial';
+    /* box-shadow: 0 0 15px -8px #888; */
+}
+
+#sidebar .sidebar-header a {
+    color: #fff;
 }
 
 #sidebar ul.components {
@@ -58,7 +71,7 @@ p {
 }
 
 #sidebar ul p {
-    color: #a2a2a2;
+    color: #333333;
     padding: 10px;
 }
 
@@ -67,7 +80,7 @@ p {
     font-size: 1.1em;
     font-weight: 500;
     display: block;
-    color: #a2a2a2;
+    color: #333333;
 }
 #sidebar ul li a:hover {
     xcolor: #F58532; 
@@ -76,7 +89,7 @@ p {
 }
 
 #sidebar ul li.active > a, a[aria-expanded="true"] {
-    color: #828282;
+    color: #333333;
     background: #e4e4e4;
 }
 ul ul a {

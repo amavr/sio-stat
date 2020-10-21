@@ -10,7 +10,7 @@ class SqlHolder {
     }
 
     async init(){
-        const dir = './masterdata/helpers/sql/';
+        const dir = './helpers/sql/';
         const files = await FileHelper.getFiles(dir);
         for(const file of files){
             const name = path.parse(file).name;

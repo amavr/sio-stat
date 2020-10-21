@@ -1,4 +1,36 @@
+
+body{
+    font-family: Montserrat, Verdana, Geneva, Tahoma, sans-serif !important;
+}
+
+h1 {
+    padding: 10px;
+}
+
+label {
+    margin-top: 5px;
+}
+
+
+.form-check-inline{
+    display: inline-table;
+}
+
+
 #templates {display: none;}
 
 
 #dlgText {font-size: 10pt; font-family: monospace;}
+
+tr.ERR {
+    color: red;
+}
+
+li.lab-item{
+    cursor: pointer;
+}
+
+li.lab-item:hover{
+    background-color: #007bff;
+    color: #fff;
+}
