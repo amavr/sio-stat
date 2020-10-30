@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
@@ -18,24 +20,24 @@
 
 <body>
     <div id="loader" class="loader loader-default"></div>
-    <div id="app" class="wrapper">
 
 
-        <div class="w3-sidebar w3-light-grey w3-card-4" id="sidebar">
-            <div class="w3-bar ie-orange">
-                <h2 class="w3-bar-item w3-padding-16"><b>Инфо</b>Энерго</h2>
-            </div>
-            <div class="w3-bar-block">
+    <div class="w3-sidebar w3-light-grey w3-card-4" id="sidebar">
+        <div class="w3-bar ie-orange">
+            <h2 class="w3-bar-item w3-padding-16">ИнфоЭнерго</h2>
+        </div>
+        <div class="w3-bar-block">
 
-                <template v-for="sec in sidebar.sections">
-                    <a href="#" v-bind:id="sec.id" class="nav-item-container w3-bar-item w3-button" v-on:click="clickMenuSection">{{sec.title}}</a>
-                    <div id="stat-box" class="w3-hide sub-items">
-                        <a v-for="item in sec.items" href="#" class="nav-item w3-bar-item w3-button">{{ item.title }}</a>
-                    </div>
-                </template>
+            <template v-for="sec in sidebar.sections">
+                <a href="#" v-bind:id="sec.id" v-bind:class="{ active: isActive }"
+                    class="nav-item-container w3-bar-item w3-button" v-on:click="clickMenuSection">{{sec.title}}</a>
+                <div id="stat-box" class="w3-hide sub-items">
+                    <a v-for="item in sec.items" href="#" class="nav-item w3-bar-item w3-button">{{ item.title }}</a>
+                </div>
+            </template>
 
 
-                <!--
+            <!--
                 <a href="#" id="btn-stat-box" class="nav-item-container w3-bar-item w3-button">Статистика</a>
                 <div id="stat-box" class="w3-hide sub-items">
                     <a href="#" class="nav-item w3-bar-item w3-button">Общая</a>
@@ -49,204 +51,206 @@
                     <a href="#" class="nav-item w3-bar-item w3-button">Загрузка</a>
                 </div>
 -->
-            </div>
-        </div>
-
-        <div class="w3-main" id="main">
-            <div class="w3-container">
-                <h1>My Page</h1>
-            </div>
         </div>
     </div>
 
-
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
-    <script type="text/javascript" src="js/utils.js"></script>
-
-
-    <script>
-
-        // Наш объект data
-        const xdata = {
-            sidebar: {
-                sections: []
-            }
-        }
-
-        // Объект добавляется в экземпляр Vue
-        Vue.config.devtools = true;
-        const vm = new Vue({
-            el: '#app',
-            data: xdata,
-            methods: {
-                clickMenuSection: function(event){
-
-                }
-            }
-        });
+    <div id="app" class="wrapper">
+        <div class="w3-main" id="main">
+            <div class="w3-container" style="margin-top: 40px; margin: 100px auto; text-align: center;">
+                <h1>404</h1>
+                <p>Что-то пошло не так ((</p>
+            </div>
+        </div>
 
 
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+        <script type="text/javascript" src="js/utils.js"></script>
 
 
-        const MenuCtrl = function () {
-            const me = this;
+        <script>
 
-            const item_containers = null;
-            const items = null;
-
-            this.wait = function (doWait) {
-                if (doWait) {
-                    document.getElementById('loader').classList.add('is-active');
-                }
-                else {
-                    document.getElementById('loader').classList.remove('is-active');
+            // Наш объект data
+            const xdata = {
+                sidebar: {
+                    sections: []
                 }
             }
 
-            this.request = async function (data, callback) {
-                await $.post('/api/v2/....', data).done(function (data) {
-                    callback(data);
-                });
-            }
+            // Объект добавляется в экземпляр Vue
+            Vue.config.devtools = true;
+            const vm = new Vue({
+                el: '#app',
+                data: xdata,
+                methods: {
+                    clickMenuSection: function (event) {
+                        console.log(event);
+                    }
+                }
+            });
 
-            this.getSidebar = async function (role) {
-                try {
-                    const answer = await axios({
-                        method: 'get',
-                        url: '/api/v1/sidebar/' + role,
-                        responseType: 'json'
+
+
+
+            const MenuCtrl = function () {
+                const me = this;
+
+                const item_containers = null;
+                const items = null;
+
+                this.wait = function (doWait) {
+                    if (doWait) {
+                        document.getElementById('loader').classList.add('is-active');
+                    }
+                    else {
+                        document.getElementById('loader').classList.remove('is-active');
+                    }
+                }
+
+                this.request = async function (data, callback) {
+                    await $.post('/api/v2/....', data).done(function (data) {
+                        callback(data);
+                    });
+                }
+
+                this.getSidebar = async function (role) {
+                    try {
+                        const answer = await axios({
+                            method: 'get',
+                            url: '/api/v1/sidebar/' + role,
+                            responseType: 'json'
+                        });
+
+                        vm.sidebar.sections = answer.data.map((e, i) => {
+                            e.id = i;
+                            return e;
+                        });
+                        setHandlers();
+                        console.log(vm.sidebar);
+
+                        return answer;
+                    }
+                    catch (ex) {
+                        console.error(ex);
+                    }
+                    // console.log(answer);
+                }
+
+                function setMenuItemActive() {
+                    for (const item of me.items) {
+                        item.classList.remove('active');
+                    }
+                    this.classList.add('active');
+                }
+
+                function toggleSubmenu() {
+                    const id = this.id.substr(4);
+                    const elem = document.getElementById(id);
+                    if (elem.classList.contains('w3-show')) {
+                        elem.classList.remove('w3-show');
+                    }
+                    else {
+                        elem.classList.add('w3-show');
+                    }
+                }
+
+                function initAxios() {
+                    // declare a request interceptor
+                    axios.interceptors.request.use(config => {
+                        me.wait(true);
+                        return config;
+                    }, error => {
+                        me.wait(false);
+                        // handle the error
+                        return Promise.reject(error);
                     });
 
-                    vm.sidebar.sections = answer.data.map((e, i) => { 
-                        e.id = i;
-                        return e;
+                    // declare a response interceptor
+                    axios.interceptors.response.use((response) => {
+                        me.wait(false);
+
+                        return response;
+                    }, error => {
+                        me.wait(false);
+                        // handle the response error
+                        return Promise.reject(error);
                     });
-                    setHandlers();
-                    console.log(vm.sidebar);
+                }
 
-                    return answer;
+                function setHandlers() {
+
+                    let items = undefined;
+
+                    items = document.querySelectorAll('a.nav-item-container');
+                    for (const item of items) {
+                        item.addEventListener('click', toggleSubmenu);
+                    }
+
+                    me.items = document.querySelectorAll('a.nav-item');
+                    for (const item of me.items) {
+                        item.addEventListener('click', setMenuItemActive);
+                    }
                 }
-                catch (ex) {
-                    console.error(ex);
+
+                this.constructor = function () {
+                    initAxios();
+                    // setHandlers();
+                    this.getSidebar('two')
+                        .then(answer => {
+                            console.log(answer);
+                        })
+                        .catch(err => {
+                            console.log(err);
+                        })
+
                 }
-                // console.log(answer);
+
+                this.constructor();
             }
 
-            function setMenuItemActive() {
-                for (const item of me.items) {
-                    item.classList.remove('active');
-                }
-                this.classList.add('active');
-            }
 
-            function toggleSubmenu() {
-                const id = this.id.substr(4);
-                const elem = document.getElementById(id);
-                if (elem.classList.contains('w3-show')) {
-                    elem.classList.remove('w3-show');
-                }
-                else {
-                    elem.classList.add('w3-show');
-                }
-            }
+            window.addEventListener('load', function () {
+                console.log('READY');
 
-            function initAxios() {
-                // declare a request interceptor
-                axios.interceptors.request.use(config => {
-                    me.wait(true);
-                    return config;
-                }, error => {
-                    me.wait(false);
-                    // handle the error
-                    return Promise.reject(error);
-                });
+                const ctrl = new MenuCtrl();
 
-                // declare a response interceptor
-                axios.interceptors.response.use((response) => {
-                    me.wait(false);
+            });
 
-                    return response;
-                }, error => {
-                    me.wait(false);
-                    // handle the response error
-                    return Promise.reject(error);
-                });
-            }
-
-            function setHandlers() {
-
-                let items = undefined;
-
-                items = document.querySelectorAll('a.nav-item-container');
-                for (const item of items) {
-                    item.addEventListener('click', toggleSubmenu);
-                }
-
-                me.items = document.querySelectorAll('a.nav-item');
-                for (const item of me.items) {
-                    item.addEventListener('click', setMenuItemActive);
-                }
-            }
-
-            this.constructor = function () {
-                initAxios();
-                // setHandlers();
-                this.getSidebar('two')
-                    .then(answer => {
-                        console.log(answer);
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
-
-            }
-
-            this.constructor();
-        }
+            document.addEventListener('DOMDocumentLoaded', () => {
+            });
 
 
-        window.addEventListener('load', function () {
-            console.log('READY');
-
-            const ctrl = new MenuCtrl();
-
-        });
-
-        document.addEventListener('DOMDocumentLoaded', () => {
-        });
-
-
-        google.charts.load('current', { 'packages': ['corechart'] });
-        google.charts.setOnLoadCallback(() => {
+            google.charts.load('current', { 'packages': ['corechart'] });
+            google.charts.setOnLoadCallback(() => {
 
 
 
-            // $(document).ajaxStart(function () {
-            //     ctrl.wait(true);
-            // });
+                // $(document).ajaxStart(function () {
+                //     ctrl.wait(true);
+                // });
 
-            // $(document).ajaxComplete(function () {
-            //     ctrl.wait(false);
-            // });
-        });
-
-
-        // Получение свойства из экземпляра
-        // возвращает то же значение из исходных данных
-        vm.a === xdata.a // => true
-
-        // Изменение свойства экземпляра
-        // влияет на оригинальные данные
-        vm.a = 2
-        xdata.a // => 2
-
-        // ... и наоборот
-        xdata.a = 3
-        vm.a // => 3
+                // $(document).ajaxComplete(function () {
+                //     ctrl.wait(false);
+                // });
+            });
 
 
-    </script>
+            // Получение свойства из экземпляра
+            // возвращает то же значение из исходных данных
+            vm.a === xdata.a // => true
+
+            // Изменение свойства экземпляра
+            // влияет на оригинальные данные
+            vm.a = 2
+            xdata.a // => 2
+
+            // ... и наоборот
+            xdata.a = 3
+            vm.a // => 3
+
+
+        </script>
+    </div>
 </body>
 
 </html>

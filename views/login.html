@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/style.css">
+    <title>Авторизация</title>
+
+    <style>
+        .center-form-box {
+            margin: 100px auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media screen and (min-width: 1000px) {
+            .center-form-box {
+                width: 30%;
+            }
+        }
+
+        @media screen and (max-width: 1000px) {
+            .center-form-box {
+                width: 60%;
+            }
+        }
+
+        @media screen and (max-width: 600px) {
+            .center-form-box {
+                width: 90%;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="loader" class="loader loader-default"></div>
+    <div id="app" class="wrapper">
+        <div class="center-form-box">
+            <form class="w3-container" method="POST" @submit.prevent="login">
+                <h2>Авторизация</h2>
+                <p>
+                    <input v-model="username" required class="w3-input no-outline" type="text">
+                    <label>Имя пользователя</label>
+                </p>
+                <p>
+                    <input v-model="password" required class="w3-input no-outline" type="password">
+                    <label>Пароль</label>
+                </p>
+
+                <p style="text-align: right;">
+                    <button class="w3-btn w3-blue">OK</button>
+                </p>
+            </form>
+
+            <div class="danger hidden">
+                <p><strong>Упс!</strong> Имя или пароль указали неверно...</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+
+    <script>
+
+        // Наш объект data
+        const xdata = {
+            sidebar: {
+                sections: []
+            }
+        }
+
+        // Объект добавляется в экземпляр Vue
+        Vue.config.devtools = true;
+        const vm = new Vue({
+            el: '#app',
+            data: {
+                username: '',
+                password: '',
+                hasError: false
+            },
+            methods: {
+                login: async function () {
+                    const username = this.username;
+                    const password = this.password;
+                    await axios.post('/api/v1/auth', {
+                        username: this.$data.username, 
+                        password: this.$data.password
+                    });
+                    console.log(username, password);
+                }
+            },
+            mounted(){
+              console.log('MOUNTED');
+            } 
+        });
+
+
+
+
+        const MenuCtrl = function () {
+            const me = this;
+
+            const item_containers = null;
+            const items = null;
+
+            this.wait = function (doWait) {
+                if (doWait) {
+                    document.getElementById('loader').classList.add('is-active');
+                }
+                else {
+                    document.getElementById('loader').classList.remove('is-active');
+                }
+            }
+
+            this.login = async function (role) {
+                try {
+                    const answer = await axios({
+                        method: 'get',
+                        url: '/api/v1/sidebar/' + role,
+                        responseType: 'json'
+                    });
+
+                    vm.sidebar.sections = answer.data.map((e, i) => {
+                        e.id = i;
+                        return e;
+                    });
+                    setHandlers();
+                    console.log(vm.sidebar);
+
+                    return answer;
+                }
+                catch (ex) {
+                    console.error(ex);
+                }
+                // console.log(answer);
+            }
+
+            function initAxios() {
+                // declare a request interceptor
+                axios.interceptors.request.use(config => {
+                    me.wait(true);
+                    return config;
+                }, error => {
+                    me.wait(false);
+                    // handle the error
+                    return Promise.reject(error);
+                });
+
+                // declare a response interceptor
+                axios.interceptors.response.use((response) => {
+                    me.wait(false);
+
+                    return response;
+                }, error => {
+                    me.wait(false);
+                    // handle the response error
+                    return Promise.reject(error);
+                });
+            }
+
+            this.constructor = function () {
+                initAxios();
+            }
+
+            this.constructor();
+        }
+
+
+        window.addEventListener('load', function () {
+            console.log('READY');
+
+            const ctrl = new MenuCtrl();
+
+        });
+
+        // Получение свойства из экземпляра
+        // возвращает то же значение из исходных данных
+        vm.a === xdata.a // => true
+
+        // Изменение свойства экземпляра
+        // влияет на оригинальные данные
+        vm.a = 2
+        xdata.a // => 2
+
+        // ... и наоборот
+        xdata.a = 3
+        vm.a // => 3
+
+
+    </script>
+
+
+</body>
+
+</html>

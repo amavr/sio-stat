@@ -22,6 +22,15 @@ db_helper.init();
 const router = express.Router();
 
 
+router.post('/v1/auth', async (req, res) => {
+    if(req.body.username === 'demo' && req.body.password === 'demo'){
+        res.json({success: true});
+    }
+    else{
+        res.status(404).json({success: false, msg: 'Неверный логин или пароль'});
+    }
+});
+
 router.get('/v1/sidebar/:user', async (req, res) => {
 
     // const role = dbg_data.users.
@@ -82,6 +91,20 @@ router.get('/v1/msg', async (req, res) => {
     }
     catch (ex) {
         log.error(ex);
+    }
+});
+
+router.get('/v1/pair-stat', async (req, res) => {
+    log.debug('/v1/pair-stat');
+    const sql = holder.get('pair_stat');
+    // console.log(sql);
+    const ans = await db_helper.select(sql, {});
+    // console.log(ans);
+    if (ans.success) {
+        res.send(ans.data);
+    }
+    else {
+        res.status(500).json({ msg: ans.error }).end();
     }
 });
 
@@ -239,16 +262,18 @@ router.post('/v1/errors', async (req, res) => {
     const cond = req.body;
     const sql = holder.get('stat_log_errors').replace('##beg_id##', cond.beg_id).replace('##end_id##', cond.end_id);
     const result = await db_helper.execSql(sql);
-    const data = result.data.map((val, i) => {
-        return [val.MSG, val.NUM];
-    });
+    const data = result.data === null 
+        ? []
+        : result.data.map((val, i) => {
+            return [val.MSG, val.NUM];
+        });
     res.send(data);
 });
 
 router.post('/v1/error-trans', async (req, res) => {
     const cond = req.body;
     // const binds = { expr: cond.expr, beg_id: cond.beg_id, dt_end: cond.end_id };
-    const binds = [ cond.msg.substr(0, 50) + '%', cond.beg_id, cond.end_id ];
+    const binds = [cond.msg.substr(0, 50) + '%', cond.beg_id, cond.end_id];
     const result = await db_helper.select(holder.get('stat_log_error_trans'), binds);
     if (result.success) {
         res.send(result.data);
@@ -260,7 +285,7 @@ router.post('/v1/error-trans', async (req, res) => {
 
 router.get('/v1/transact/:tran_id', async (req, res) => {
     const sql = holder.get('tran_rows');
-    const binds = [ req.params.tran_id ];
+    const binds = [req.params.tran_id];
 
     const result = await db_helper.select(sql, binds);
     const data = result.data;
@@ -277,10 +302,10 @@ router.get('/v1/transact/last', async (req, res) => {
         const sql = holder.get('last_tran_id');
         const result = await db_helper.execSql(sql);
         if (result.success) {
-            if(result.data.length === 0){
-                res.status(204).send({TRAN_ID: 0});
+            if (result.data.length === 0) {
+                res.status(204).send({ TRAN_ID: 0 });
             }
-            else{
+            else {
                 res.send(result.data[0]);
             }
         }

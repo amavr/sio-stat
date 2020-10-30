@@ -1,47 +1,29 @@
-<!-- Sidebar -->
-<nav id="sidebar">
-    <div class="sidebar-header">
-        <h3><B>Инфо</B>Энерго</h3>
+<div class="w3-sidebar w3-light-grey w3-card-4" id="sidebar">
+    <div class="w3-bar ie-orange">
+        <h2 class="w3-bar-item w3-padding-16">ИнфоЭнерго</h2>
     </div>
+    <div class="w3-bar-block">
 
-    <ul class="list-unstyled components">
-        <li>
-            <a href="#homeSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Статистика</a>
-            <ul class="collapse list-unstyled" id="homeSubmenu">
-                <li class="active">
-                    <a href="stat-1.html">Общая</a>
-                </li>
-                <li>
-                    <a href="stat-2.html">Ошибки</a>
-                </li>
-                <li>
-                    <a href="stat-3.html">Загрузка</a>
-                </li>
-            </ul>
-        </li>
-        <li>
-            <a href="#">About</a>
-        </li>
-        <li>
-            <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Pages</a>
-            <ul class="collapse list-unstyled" id="pageSubmenu">
-                <li>
-                    <a href="#">Page 1</a>
-                </li>
-                <li>
-                    <a href="#">Page 2</a>
-                </li>
-                <li>
-                    <a href="#">Page 3</a>
-                </li>
-            </ul>
-        </li>
-        <li>
-            <a href="#">Portfolio</a>
-        </li>
-        <li>
-            <a href="#">Contact</a>
-        </li>
-    </ul>
+        <template v-for="sec in sidebar.sections">
+            <a href="#" v-bind:id="sec.id" v-bind:class="{ active: isActive }"
+                class="nav-item-container w3-bar-item w3-button" v-on:click="clickMenuSection">{{sec.title}}</a>
+            <div id="stat-box" class="w3-hide sub-items">
+                <a v-for="item in sec.items" href="#" class="nav-item w3-bar-item w3-button">{{ item.title }}</a>
+            </div>
+        </template>
 
-</nav>
+
+        <a href="#" id="btn-stat-box" class="nav-item-container w3-bar-item w3-button">Статистика</a>
+        <div id="stat-box" class="w3-hide sub-items">
+            <a href="#" class="nav-item w3-bar-item w3-button">Общая</a>
+            <a href="#" class="nav-item w3-bar-item w3-button">Ошибки</a>
+            <a href="#" class="nav-item w3-bar-item w3-button">Загрузка</a>
+        </div>
+        <a href="#" id="btn-mon-box" class="nav-item-container w3-bar-item w3-button">Мониторинг</a>
+        <div id="mon-box" class="w3-hide sub-items">
+            <a href="#" class="nav-item w3-bar-item w3-button">Общая</a>
+            <a href="#" class="nav-item w3-bar-item w3-button">Ошибки</a>
+            <a href="#" class="nav-item w3-bar-item w3-button">Загрузка</a>
+        </div>
+    </div>
+</div>

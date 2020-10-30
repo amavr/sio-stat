@@ -1,5 +1,5 @@
 
-body{
+body, h1, h2, h3, h4, h5, h6{
     font-family: Montserrat, Verdana, Geneva, Tahoma, sans-serif !important;
 }
 
@@ -9,6 +9,17 @@ h1 {
 
 label {
     margin-top: 5px;
+}
+
+
+.no-outline:focus {
+    outline: none;
+}
+
+.danger {
+    background-color: #ffdddd;
+    border-left: 6px solid #f44336;
+    padding: 8px 20px;
 }
 
 

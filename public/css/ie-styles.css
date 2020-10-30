@@ -1,4 +1,4 @@
-body{
+body, h1, h2, h3, h4, h5, h6{
     font-family: Montserrat, Verdana, Geneva, Tahoma, sans-serif !important;
 }
 
@@ -7,9 +7,19 @@ body{
     width: 260px;
 }
 
-#main {
-    margin-left: 250px;
+.body {
+    margin-left: 260px;
+    padding: 20px;
 }
+
+footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+  }
+
 
 .sub-items {
     margin-left: 20px;

@@ -1,9 +1,13 @@
 .ie-orange, .ie-hover-orange:hover {
     color: #fff !important;
-    background-color: #F58532 !important;
+    background-color: #2196F3 !important;
+
 }
 
-
 .w3-sidebar .w3-bar-item.active {
-    background-color: #ffd9bd !important;    
+    background-color: #b6dfff !important;
+}
+
+.w3-sidebar .w3-bar-item:hover {
+    background-color: #b6dfff !important;
 }
