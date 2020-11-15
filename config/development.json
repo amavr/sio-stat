@@ -1,7 +1,7 @@
 {
     "log_dir": "logs",
     "api": {
-        "dbname": "dalpha"
+        "dbname": "alpha"
     },
     "pages": {
         "state_handle": {
@@ -83,6 +83,25 @@
                     "    )",
                     "    (CONNECT_DATA = ",
                     "      (SERVICE_NAME = talpha)",
+                    "    )",
+                    "  )"
+                ],
+                "poolMin": 2,
+                "poolMax": 8,
+                "poolIncrement": 2
+            }
+        },
+        "alpha": {
+            "hrPool": {
+                "user": "I_USER3",
+                "password": "qwe123",
+                "cs": [
+                    " (DESCRIPTION = ",
+                    "    (ADDRESS_LIST = ",
+                    "      (ADDRESS = (PROTOCOL = TCP)(HOST = len-oradb.energo.ru)(PORT = 1521))",
+                    "    )",
+                    "    (CONNECT_DATA = ",
+                    "      (SERVICE_NAME = alpha)",
                     "    )",
                     "  )"
                 ],

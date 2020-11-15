@@ -33,6 +33,12 @@ label {
 
 #dlgText {font-size: 10pt; font-family: monospace;}
 
+.bd-content-title{
+    font-size: 14pt;
+    font-weight: bold;
+    margin: 10px;
+}
+
 tr.ERR {
     color: red;
 }

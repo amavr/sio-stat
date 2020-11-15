@@ -283,21 +283,8 @@ router.post('/v1/error-trans', async (req, res) => {
     }
 });
 
-router.get('/v1/transact/:tran_id', async (req, res) => {
-    const sql = holder.get('tran_rows');
-    const binds = [req.params.tran_id];
-
-    const result = await db_helper.select(sql, binds);
-    const data = result.data;
-    if (result.success) {
-        res.send(data);
-    }
-    else {
-        res.status(500).send(result.error);
-    }
-});
-
 router.get('/v1/transact/last', async (req, res) => {
+    console.log('/api/v1/transact/last');
     try {
         const sql = holder.get('last_tran_id');
         const result = await db_helper.execSql(sql);
@@ -318,6 +305,20 @@ router.get('/v1/transact/last', async (req, res) => {
     }
 });
 
+
+router.get('/v1/transact/:tran_id', async (req, res) => {
+    const sql = holder.get('tran_rows');
+    const binds = [req.params.tran_id];
+
+    const result = await db_helper.select(sql, binds);
+    const data = result.data;
+    if (result.success) {
+        res.send(data);
+    }
+    else {
+        res.status(500).send(result.error);
+    }
+});
 
 router.get('/v1/transactx/:tran_id', async (req, res) => {
     const cond = req.body;
