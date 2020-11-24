@@ -1,7 +1,7 @@
 {
     "log_dir": "logs",
     "api": {
-        "dbname": "alpha"
+        "dbname": "talpha"
     },
     "pages": {
         "state_handle": {

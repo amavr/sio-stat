@@ -366,6 +366,11 @@ router.get('/v1/stat/objects/added', async (req, res) => {
     res.send(data);
 });
 
+router.post('/v1/file', async (req, res) => {
+    console.log(req.headers);
+    res.json({success: true});
+});
+
 
 
 module.exports = router;
