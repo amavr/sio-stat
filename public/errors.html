@@ -252,7 +252,7 @@
                 for (const lab of labels) {
                     const clone = document.importNode(t_lab, true);
                     clone.setAttribute('id', lab.ID);
-                    clone.innerHTML = `${lab.DT.substr(0, 16).replace('T', ' ')}<span style="padding-left: 24px;">${lab.NAME}</span>`;
+                    clone.innerHTML = `${lab.DT.substr(0, 16).replace('T', ' ')}<span style="padding-left: 24px;">${lab.NAME}</span><span class="trn-count">[...]</span>`;
                     box.appendChild(clone);
                 }
 
@@ -274,14 +274,14 @@
                     $('#tran_id').val(rows[0].TRAN_ID);
                 }
                 for (const row of rows) {
-                    const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.length > 80;
+                    const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.includes('(');
                     const hrow = html
                         .replace('##lvl##', row.LVL)
                         .replace('##tag##', row.TAG)
                         .replace('##dt##', row.DT.replace('T', ' ').replace('Z', ' '))
                         .replace('##id##', row.ID)
                         .replace('##key##', row.KEY)
-                        .replace('##msg##', row.MSG)
+                        .replace('##msg##', row.MSG.replace(/\r/g, '').replace(/\n/g, '<br/>'))
                         .replace('##tran_id##', row.TRAN_ID)
                         .replace('##a_beg##', clicked ? '<a class="to_fmt" href="#">' : '')
                         .replace('##a_end##', clicked ? '</a>' : '');
@@ -305,6 +305,11 @@
 
                 this.setClickItemsListener(box.querySelectorAll('li.lab-item'), onClick, true);
                 box.innerHTML = '';
+
+                const tran_num = document.querySelector('.list-group-item.lab-item.active .trn-count');
+                if(tran_num){
+                    tran_num.innerText = `[${rows.length}]`;
+                }
 
                 const t_lab = document.querySelector('#templates #labelsItem li');
 
@@ -426,6 +431,8 @@
                         $('#end_id').val(rows[0].END_ID);
                         const cond = view.getTopCondition();
                         await me.getStat(cond);
+                        cond.msg = null;
+                        await me.publishTransactList(cond);
                     }
                 }
                 finally {

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/w3.css">
+    <link rel="stylesheet" href="css/linksBak.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Связи ИСЭ-СИО</title>
+</head>
+
+<body style="padding: 0 24px;">
+    <h1>Проблемные связи</h1>
+    <div id="loader" class="loader loader-default"></div>
+    <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+    <div id="app" class="w3-cell-row">
+        <div class="w3-container w3-cell" style="width: 20%; background-color: rgb(233, 233, 233);">
+            <h3 class="bd-content-title">ID_IES -> ID (+)&nbsp;{{dbl_links.ise.length}}</h3>
+            <div class="am-scolled">
+                <table class="am-tab" style="width: 100%">
+                    <tr v-for="(link, index) in dbl_links.ise" :key="index">
+                        <td>{{index + 1}}</td>
+                        <td>{{link.TYPE}}</td>
+                        <td class="am-pointed" v-on:click="clickSioIse(link, $event)">{{link.KEY}}</td>
+                        <td>{{link.NUM}}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="w3-container w3-cell" style="width: 40%; background-color: rgb(233, 233, 233);">
+            <h3 class="bd-content-title">SIO</h3>
+            <div class="am-scolled">
+                <table class="am-tab" style="width: 100%">
+                    <tr v-for="(value, name) in sio_item">
+                        <td>{{name}}</td>
+                        <td style="word-wrap: normal;">{{value ? value.replace('http://trinidata.ru/sigma/', '') : ''}}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="w3-container w3-cell" style="width: 40%; background-color: rgb(233, 233, 233);">
+            <h3 class="bd-content-title">ISE</h3>
+            <div class="am-scolled">
+                <div v-for="(item, index) in ise_items" :key="index" style="width: 100%;margin-bottom: 20px;">
+                    <table class="am-tab" style="width: 100%;">
+                        <tr v-for="(value, name) in item">
+                            <td>{{name}}</td>
+                            <td style="word-wrap: normal;">
+                                {{value}}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                ready: false,
+                dbl_links: {
+                    sio: [],
+                    ise: []
+                },
+                active_element: null,
+                sio_item: null,
+                ise_items: null,
+                lineIndexSelected: 1
+            },
+            created() {
+                console.log('Here!');
+                this.loadDoubleLinks();
+            },
+            methods: {
+                loadDoubleLinks: async function () {
+                    try {
+                        const res = await fetch('/api/v1/links/dblise');
+                        this.dbl_links.ise = await res.json();
+                        console.log(this.dbl_links.ise.length);
+                    } catch (ex) {
+                        console.error(ex);
+                    }
+                },
+                clickSioIse: async function (item, e) {
+                    console.log(e);
+                    console.log(item);
+                    try {
+                        if (this.active_element) {
+                            this.active_element.classList.remove('active');
+                        }
+                        this.active_element = e.srcElement;
+                        this.active_element.classList.add('active');
+                        this.sio_item = null;
+                        const res = await fetch(`/api/v1/links/sio_item/${item.TYPE}/${item.KEY}`);
+                        const answer = await res.json();
+                        this.sio_item = answer.sio;
+                        this.ise_items = answer.ise;
+                    } catch (ex) {
+                        console.error(ex);
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+body {
+    font-family: 'Open Sans Condensed';
+    font-size: 12pt;
+}
+
+*:focus {
+    outline: none;
+}
+
+tr:nth-child(even) {
+    background: #eee
+}
+
+tr:nth-child(odd) {
+    background: #FFF
+}
+
+table {
+    border-spacing: 0;
+    border: solid 1px #ddd;
+}
+
+td {
+    padding: 2px 8px;
+}
+
+details.main>summary {
+    cursor: pointer;
+    font-family: 'Montserrat';
+    font-size: 14pt;
+    margin: 12px 0;
+}
+
+summary {
+    cursor: pointer;
+}
+
+details>div {
+    margin-left: 12px;
+    padding: 12px;
+}
+
+details.main>div {
+    margin-left: 24px;
+    border: solid 1px #eee;
+}
+
+summary:hover {
+    color: #f00;
+}
+
+summary>span {
+    display: inline-block;
+}
+
+summary>span.num {
+    min-width: 5ch;
+    text-align: right;
+}
+
+summary>span.type {
+    min-width: 5ch;
+    text-align: center;
+}
+
+details.main>summary::-webkit-details-marker {
+    display: none;
+}

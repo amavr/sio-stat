@@ -2,7 +2,9 @@
 
 const oracledb = require('oracledb');
 const log = require('log4js').getLogger('DBHelper');
+const moment = require('moment');
 const Utils = require('./utils');
+const sql_holder = require('./sql_holder');
 
 module.exports = class DBHelper {
 
@@ -49,6 +51,8 @@ module.exports = class DBHelper {
             data: null
         };
 
+        log.info(sql);
+
         const dbcon = await this.getConnection();
         try {
             const do_commit = autoCommit === undefined ? true : autoCommit;
@@ -63,22 +67,28 @@ module.exports = class DBHelper {
         return res;
     }
 
-    async select(sql, binds){
+    async select(sql, binds) {
         const res = {
             success: false,
             error: null,
-            data: null
+            rows: []
         };
+
+        // log.info(sql);
+
         const dbcon = await this.getConnection();
-        try{
+        try {
+            if(binds === undefined) binds = [];
+
             const result = await dbcon.execute(sql, binds, { autoCommit: true, outFormat: oracledb.OBJECT });
-            res.data = result.rows;
+            // console.log(`rows: ${result.rows.length}`);
+            res.rows = result.rows;
             res.success = true;
         }
-        catch(ex){
+        catch (ex) {
             res.error = ex.message;
         }
-        finally{
+        finally {
             await this.close(dbcon);
         }
         return res;
@@ -125,39 +135,95 @@ module.exports = class DBHelper {
         return res;
     }
 
-    static getTypeName(typeId){
-        if(typeId === oracledb.STRING){
+    static getTypeName(typeId) {
+        if (typeId === oracledb.STRING) {
             return 'VARCHAR2';
         }
-        else if(typeId === oracledb.NUMBER){
+        else if (typeId === oracledb.NUMBER) {
             return 'NUMBER';
         }
-        else if(typeId === oracledb.DATE){
+        else if (typeId === oracledb.DATE) {
             return 'DATE';
         }
-        else{
+        else {
             return "-";
         }
     }
 
-    static getProcCall(sql, binds){
+    static getProcCall(sql, binds) {
         let script = sql;
         let vars = [];
-        for(var key in binds){
-            if(binds[key].dir === oracledb.BIND_OUT) {
+        for (var key in binds) {
+            if (binds[key].dir === oracledb.BIND_OUT) {
                 vars.push(`\t${key} ${DBHelper.getTypeName(binds[key].type)};`);
             }
-            const val = binds[key].dir === oracledb.BIND_OUT 
+            const val = binds[key].dir === oracledb.BIND_OUT
                 ? `${key} => ${key}`
-                : binds[key].type === oracledb.STRING 
+                : binds[key].type === oracledb.STRING
                     ? `${key} => '${binds[key].val}'`
                     : `${key} => ${binds[key].val}`;
             script = script.replace(':' + key, val)
         }
-        if(vars.length > 0){
+        if (vars.length > 0) {
             script = 'declare\r\n' + vars.join('\r\n') + script;
         }
         return script;
+    }
+
+    async updForecast(data) {
+        let dbcon = await this.getConnection();
+        try {
+            if (data.last.time) {
+                data.prev = {
+                    time: data.last.time,
+                    count: data.last.count
+                }
+            }
+
+            // const res = await this.execSql('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG6_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES6_1)');
+            const res = await this.execSql('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG13_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES13_1)');
+            // const res = await this.execSql('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG16_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES16_1)');
+            // const res = await this.execSql(sql_holder.get('forecast'));
+
+            data.last.time = moment(res.data[0].DT);
+            data.last.count = res.data[0].NUM;
+            log.debug(JSON.stringify(data, null, '\t'));
+        }
+        catch (ex) {
+            console.error(ex.message);
+        }
+        await this.close(dbcon);
+    }
+
+    async dbgForecast(doRecalc) {
+        const ans = {
+            success: true,
+            dt: null
+        };
+
+        let dbcon = await this.getConnection();
+        try {
+            const res = await dbcon.execute(
+                'BEGIN DBG_TOOLS.CALC_PROC_TIME(:TAG,:UPD,:END_DT);END;',
+                {
+                    TAG: { type: oracledb.STRING, dir: oracledb.BIND_IN, val: '6' },
+                    UPD: { type: oracledb.NUMBER, dir: oracledb.BIND_IN, val: doRecalc ? 1 : 0 },
+                    END_DT: { type: oracledb.DATE, dir: oracledb.BIND_OUT }
+                },
+                {
+                    resultSet: false,
+                    autoCommit: true
+                });
+            await dbcon.commit();
+
+            ans.dt = res.outBinds.END_DT;
+        }
+        catch (ex) {
+            console.error(ex.message);
+            ans.success = false;
+        }
+        await this.close(dbcon);
+        return ans;
     }
 
     async saveIndicat(doc) {

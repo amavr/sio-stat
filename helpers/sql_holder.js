@@ -13,13 +13,18 @@ class SqlHolder {
         const dir = './helpers/sql/';
         const files = await FileHelper.getFiles(dir);
         for(const file of files){
-            const name = path.parse(file).name;
+            const name = path.parse(file).name.toUpperCase();
             this.sqls[name] = await FileHelper.read(path.join(dir, file));
         }
     }
 
     get(name){
-        return this.sqls[name];
+        if(name){
+            return this.sqls[name.toUpperCase()];
+        }
+        else{
+            return null;
+        }
     }
 }
 

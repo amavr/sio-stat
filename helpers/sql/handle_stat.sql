@@ -1,7 +1,7 @@
 WITH 
 x(FLOW_TYPE, KOD_OBJTYPE, NAME, SOUR, TAG, CATEG, NUM) AS (
     SELECT s.FLOW_TYPE, s.KOD_OBJTYPE, t.NAME, s.SOUR, s.TAG, decode(s.SOUR, 'SEG', DECODE(s.TAG, NULL, 'NOPAIR', 'CH', 'ADDED', 'PAIRED'), 'ERROR') categ, s.NUM  
-      FROM VI_HANDLE_STAT s, IEK_OBJTYPE t
+      FROM #source# s, IEK_OBJTYPE t
      WHERE s.KOD_OBJTYPE = t.KOD_OBJTYPE
  ),
 d(FLOW_TYPE, KOD_OBJTYPE, ORD) AS (
@@ -19,12 +19,14 @@ d(FLOW_TYPE, KOD_OBJTYPE, ORD) AS (
  error(FLOW_TYPE, KOD_OBJTYPE, NUM) AS (
     SELECT FLOW_TYPE, KOD_OBJTYPE, SUM(NUM) FROM x WHERE SOUR = 'ERR' GROUP BY FLOW_TYPE, KOD_OBJTYPE
  )
- SELECT d.FLOW_TYPE, d.KOD_OBJTYPE, t.NAME, nvl(f.num, 0) fnum, nvl(m.num, 0) mnum, nvl(n.num, 0) - nvl(e.num, 0) nnum, nvl(e.num, 0) enum
+-- SELECT d.FLOW_TYPE, d.KOD_OBJTYPE, t.NAME, nvl(f.num, 0) fnum, nvl(m.num, 0) mnum, nvl(n.num, 0) - nvl(e.num, 0) nnum, nvl(e.num, 0) enum
+ SELECT d.FLOW_TYPE, d.KOD_OBJTYPE, t.NAME, nvl(f.num, 0) fnum, nvl(m.num, 0) mnum, nvl(n.num, 0) nnum, nvl(e.num, 0) enum
    FROM d 
    INNER JOIN IEK_OBJTYPE t ON (T.KOD_OBJTYPE = d.KOD_OBJTYPE)
    LEFT OUTER JOIN found f ON (f.FLOW_TYPE = d.FLOW_TYPE AND f.KOD_OBJTYPE = d.KOD_OBJTYPE)
    LEFT OUTER JOIN maked m ON (m.FLOW_TYPE = d.FLOW_TYPE AND m.KOD_OBJTYPE = d.KOD_OBJTYPE)
    LEFT OUTER JOIN nopair n ON (n.FLOW_TYPE = d.FLOW_TYPE AND n.KOD_OBJTYPE = d.KOD_OBJTYPE)
    LEFT OUTER JOIN error e ON (e.FLOW_TYPE = d.FLOW_TYPE AND e.KOD_OBJTYPE = d.KOD_OBJTYPE)
- WHERE d.FLOW_TYPE != 'МКД_КВ'  
+ WHERE 1=1
+   AND d.FLOW_TYPE != 'Y'
  ORDER BY d.FLOW_TYPE, d.ORD

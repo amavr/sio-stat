@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/links.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Связи ИСЭ-СИО</title>
+</head>
+
+<body style="padding: 0 24px;">
+    <h1>Проблемные связи</h1>
+    <div id="app">
+        <div id="loader" v-bind:class = "(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+
+        <section>
+            <details class="main" v-for="(link, index) in sio_links" :key="index">
+                <summary style="width:100%;" v-on:click="clickSummary(link, index, $event)">
+                    <span class="num">{{link.NUM}}</span>
+                    <span class="type">{{link.TYPE}}</span>
+                    <span>{{link.KEY}}</span>
+                </summary>
+                <div>
+                    <details>
+                        <summary>Потребитель #987298347</summary>
+                        <div>
+                            <details>
+                                <summary>Договор #78170000170003</summary>
+                                <div>
+                                    asdasd
+                                </div>
+                            </details>
+                            <details>
+                                <summary>Договор #78170000170003</summary>
+                                <div>
+                                    rewtete
+                                </div>
+                            </details>
+                        </div>
+                    </details>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                sio_links: null,
+            },
+            created() {
+                console.log('Here!');
+                // const url = new URL(location.href);
+                // for(const [key, val] of Object.entries(url)){
+                //     console.log(key, val);
+                // }
+                this.loadDoubleLinks();
+            },
+            methods: {
+                loadDoubleLinks: async function () {
+                    this.waiting = true;
+                    try {
+                        const res = await fetch('/api/v1/links/dblise');
+                        this.sio_links = await res.json();
+                        console.log(this.sio_links.length);
+                    } catch (ex) {
+                        console.error(ex);
+                    }
+                    this.waiting = false;
+                },
+                clickSummary: async function (item, index, e) {
+                    const url = new URL(location.href).origin + '/objlinks.html?key=' + item.KEY;
+                    window.open(url, "_blank");
+                    // console.log(item);
+                    // console.log(index);
+                    // console.log(e);
+                    let box = e.srcElement;
+                    while (box.nodeName !== 'DETAILS') {
+                        box = box.parentElement;
+                    }
+
+                    // повторно не запрашивается
+                    if (box.classList.contains('filled')) {
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`/api/v1/links/sio_item/${item.TYPE}/${item.KEY}`);
+                        const answer = await res.json();
+                        this.sio_links[index] = answer;
+                        box.classList.add('filled');
+                    } catch (ex) {
+                        console.error(ex);
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

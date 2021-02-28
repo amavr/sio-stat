@@ -119,4 +119,8 @@ module.exports = class Adapter {
         Adapter.normalize(doc, '', array_routes.map(item => item.toLowerCase()));
     }
 
+
+    static deletePfx(key){
+        return (key) ? key.replace('http://trinidata.ru/sigma/', '') : null;
+    }
 }

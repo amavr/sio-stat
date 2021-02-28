@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/links.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Связи ИСЭ-СИО</title>
+</head>
+
+<body style="padding: 0 24px;">
+    <h1>Информация об объекте</h1>
+    <div id="app">
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+
+        <section>
+            <details>
+                <summary>{{sio_abon.title}}</summary>
+                <div>
+                    <table>
+                        <tr v-for="(value, name) in sio_abon.visible">
+                            <td>{{name}}</td>
+                            <td>{{value}}</td>
+                        </tr>
+                    </table>
+                    <details v-for="(dog, index) in sio_abon.dogs" :key="dog.id">
+                        <summary>{{dog.title}}</summary>
+                        <div>
+                            <table>
+                                <tr v-for="(value, name) in dog.visible">
+                                    <td>{{name}}</td>
+                                    <td>{{value}}</td>
+                                </tr>
+                            </table>
+
+                            <details v-for="(obj, index) in dog.objects" :key="obj.id">
+                                <summary>{{obj.title}})</summary>
+                                <div>
+                                    <table>
+                                        <tr v-for="(value, name) in obj.visible">
+                                            <td>{{name}}</td>
+                                            <td>{{value}}</td>
+                                        </tr>
+                                    </table>
+
+                                    <details v-for="(sup, index) in obj.sup_points">
+                                        <summary>{{sup.title}})</summary>
+                                        <div>
+                                            <table>
+                                                <tr v-for="(value, name) in sup.visible">
+                                                    <td>{{name}}</td>
+                                                    <td>{{value}}</td>
+                                                </tr>
+                                            </table>
+
+                                            <details v-for="(cnt, index) in sup.cnt_points">
+                                                <summary>{{cnt.title}})</summary>
+                                                <div>
+                                                    <table>
+                                                        <tr v-for="(value, name) in cnt.visible">
+                                                            <td>{{name}}</td>
+                                                            <td>{{value}}</td>
+                                                        </tr>
+                                                    </table>
+
+                                                    <details v-for="(unit, index) in cnt.units" :key="unit.id">
+                                                        <summary>{{unit.title}}</summary>
+                                                        <div>
+                                                            <details v-for="(ini, index) in unit.registers"
+                                                                :key="ini.id">
+                                                                <summary>
+                                                                    {{ini.title}}
+                                                                </summary>
+                                                                <div>
+                                                                    <table>
+                                                                        <tr v-for="(value, name) in ini">
+                                                                            <td>{{name}}</td>
+                                                                            <td>{{value}}</td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </div>
+                                                            </details>
+                                                        </div>
+                                                    </details>
+                                                </div>
+                                            </details>
+                                        </div>
+                                    </details>
+                                </div>
+                            </details>
+                        </div>
+                    </details>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                sio_abon: {},
+            },
+            created() {
+                console.log('Here!');
+
+                const addr = new URL(location.href);
+                const key = addr.searchParams.get('key');
+                this.loadInfo(key);
+            },
+            methods: {
+                loadInfo: async function (sioKey) {
+                    this.waiting = true;
+                    try {
+                        const res = await fetch(`/api/v1/links/info/${sioKey}`);
+                        this.sio_abon = await res.json();
+                        // console.log(JSON.stringify(answer));
+                        console.log(this.sio_abon);
+                    } catch (ex) {
+
+                    }
+                    this.waiting = false;
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

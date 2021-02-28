@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="js/utils.js"></script>
+    <script src="js/jquery-3.5.1.min.js"></script>
+    <script src="js/moment.js"></script>
+    <title>Прогноз завершения</title>
+    <style>
+        .lab{
+            text-align: center;
+            font-size: 32pt;    
+            margin-bottom: 20px;        
+        }
+        .date {
+            text-align: center;
+            color: red;
+            font-size: 48pt;            
+        }
+        .btn{
+            text-align: center;
+            margin-top: 120px;
+            font-size: 24pt;            
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loader" class="loader loader-default"></div>
+    <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+    <div style="margin: 80px;">
+        <div id="lab" class="lab">Остановлюсь</div>
+        <div id="dt" class="date"></div>
+        <div style="text-align: center;margin-top: 100px;"><img id="gif" src="img/snegovik.gif" width="133" height="161"/> </div>
+        <div class="btn">
+            <a id="recalc" href="#">Не верю!</a>
+        </div>
+    </div>
+
+    <script>
+        const Ctrl = function () {
+            const me = this;
+
+            this.wait = function (doWait) {
+                if (doWait) {
+                    document.getElementById('loader').classList.add('is-active');
+                }
+                else {
+                    document.getElementById('loader').classList.remove('is-active');
+                }
+            }
+
+            this.request = async function (recalc, callback) {
+                await $.get('/api/v1/forecast/'+ recalc).done(function (data) {
+                    callback(data);
+                });
+            }
+
+            this.showData = function (recalc) {
+                me.request(recalc, function (res) {
+                    // moment.locale();         // en
+                    let end_dt = moment.utc(res.end_dt);
+                    const sdt = end_dt.format('DD.MM.YYYY в HH:mm');
+                    document.querySelector('#dt').innerHTML = sdt;
+
+                    end_dt = end_dt.add(new Date().getTimezoneOffset(), 'minutes');
+                    const cur_dt = new Date().valueOf();
+                    if(end_dt.valueOf() <= cur_dt){
+                        document.querySelector('#lab').innerHTML = 'Готово )))';
+                        document.querySelector('#gif').src = 'img/snowman-dance.gif';
+                    }
+                });
+            }
+
+            this.constructor = function () {
+                $('#recalc').on('click', () => {
+                    me.showData(1);
+                })
+                me.showData(0);
+            }
+
+            this.constructor();
+        }
+
+
+        window.addEventListener('load', function () {
+            console.log('READY');
+        });
+
+        $(document).ready(function () {
+            const ctrl = new Ctrl();
+
+            $(document).ajaxStart(function () {
+                ctrl.wait(true);
+            });
+
+            $(document).ajaxComplete(function () {
+                ctrl.wait(false);
+            });
+        });
+
+        document.addEventListener('DOMDocumentLoaded', () => {
+        });
+    </script>
+
+</body>
+
+</html>

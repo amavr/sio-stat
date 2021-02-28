@@ -1,0 +1,39 @@
+
+body {
+    font-family: 'Open Sans Condensed';
+    font-size: 12pt;
+}
+
+.am-tab{
+    border-spacing: 0px;
+    xborder: solid 1px #5f6879;
+    color: #5f6879;
+}
+.am-scolled{
+    height: 600px;
+    overflow:auto;
+}
+
+.am-tab tbody tr {
+    background-color: #fff;
+}
+.am-tab tbody tr:nth-child(even) {
+    background-color: #E1EBFF;
+}
+
+.am-tab tbody td.am-pointed:hover {
+    text-decoration: underline;
+}
+
+.am-tab td{
+    padding: 4px 6px;
+    word-wrap: break-word;
+}
+
+.am-tab .active{
+    color: #f00;
+}
+
+.am-pointed{
+    cursor: pointer;
+}

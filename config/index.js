@@ -1,7 +1,7 @@
 const path = require('path');
 const log4js = require('log4js');
 
-const cfg = process.env.NODE_ENV === 'production' ? require('./production.json') : require('./development.json');
+const cfg = require('./cfg.json');
 
 if (process.env.NODE_ENV === 'production') {
     const home_dir = require('os').homedir();
@@ -26,5 +26,7 @@ log4js.configure({
         default: { appenders: ['app', 'console'], level: 'debug' }
     }
 });
+
+process.env.ORA_SDTZ = 'UTC';
 
 module.exports = cfg;

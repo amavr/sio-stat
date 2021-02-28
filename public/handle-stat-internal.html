@@ -20,11 +20,11 @@
 
 
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <title>Отладка загрузки</title>
+    <title>Статистика обработки объектов</title>
 </head>
 
 <body>
-    <h1 class="bd-content-title">Отладка загрузки</h1>
+    <h1 class="bd-content-title">Статистика обработки объектов</h1>
     <div id="loader" class="loader loader-default"></div>
     <div id="error_box" class="alert alert-warning" style="display: none;"></div>
     <div class="container-fluid">
@@ -51,7 +51,6 @@
         <div id="tab_2" style="text-align: center"></div>
         <div id="box_3" style="width: 100%; height: 400px"></div>
         <div id="tab_3" style="text-align: center;"></div>
-        <div style="margin: 52px auto; padding: 12px 0; text-align: center;background-color: #efefef;">Сформировано <span id="time_label"></span></div>
     </div>
 
     <div id="dlg" class="modal" tabindex="-1" role="dialog">
@@ -90,8 +89,8 @@
                 }
             }
 
-            this.request = async function (data, callback) {
-                await $.get('/api/v1/dbg-load61').done(function (data) {
+            this.request = async function (source, callback) {
+                await $.get('/api/v1/handle-stat/'+ source).done(function (data) {
                     callback(data);
                 });
             }
@@ -101,48 +100,60 @@
                 chart.draw(data, options);
             }
 
+            this.initCounters = function (rows) {
+                const flows = {};
+
+                /// наполнение значений
+                for(const row of rows){
+                    if(flows[row.FLOW_TYPE] === undefined){
+                        flows[row.FLOW_TYPE] = [['Тип', 'Сопоставлено', 'Добавлено', 'Ошибки', 'В работе']];
+                    } 
+                }
+
+                return flows;
+            }
+
+            this.makeRow = function(objTypeName, objTypeNums){
+                const res = [objTypeName];
+                for(const key of Object.keys(objTypeNums)){
+                    // objTypeNums['5'] -= objTypeNums['3'];
+                    // if(objTypeNums[5] < 0) objTypeNums[5] = 0;
+                    res.push(objTypeNums[key]);
+                }
+                return res;
+            }
+
             this.prepareData = function (rows) {
                 const res = {
-                    common: [
-                        { title: 'Договоры', rows: [['Поток', 'Кол-во']] },
-                        { title: 'Объекты', rows: [['Поток', 'Кол-во']] },
-                        { title: 'Приборы', rows: [['Поток', 'Кол-во']] },
-                    ],
-                    parts: {}
+                    dogs: [['Поток', 'Кол-во']],
+                    objects: [['Поток', 'Кол-во']],
+                    devices: [['Поток', 'Кол-во']],
+                    bars: {}
                 };
+                console.log(res);
 
                 if (rows && rows.length > 0) {
-                    const first_row = rows[0];
-                    const titles = ['Наименование', 'Найдено', 'Добавлено', 'Без пары в ИСЭ', 'Ошибки обр', 'Ошибки учета'];
+                    /// инициализация структуры представления по входящим 
 
-                    for (const i in rows) {
-                        const row = rows[i];
-
+                    /// группировка показателей по потокам
+                    for (const row of rows) {
                         if (row.KOD_OBJTYPE === 1) {
-                            res.common[0].rows.push([row.FLOW_TYPE, row.RECEIVE]);
+                            res.dogs.push([row.FLOW_TYPE,  row.FNUM + row.MNUM + row.ENUM + row.NNUM]);
                         }
                         else if (row.KOD_OBJTYPE === 3) {
-                            res.common[1].rows.push([row.FLOW_TYPE, row.RECEIVE]);
-
+                            res.objects.push([row.FLOW_TYPE,  row.FNUM + row.MNUM + row.ENUM + row.NNUM]);
                         }
                         else if (row.KOD_OBJTYPE === 9) {
-                            res.common[2].rows.push([row.FLOW_TYPE, row.RECEIVE]);
+                            res.devices.push([row.FLOW_TYPE,  row.FNUM + row.MNUM + row.ENUM + row.NNUM]);
                         }
 
-                        const chartTitle = row.FLOW_TYPE;
-                        if (res.parts[chartTitle] === undefined) {
-                            res.parts[chartTitle] = [titles];
-                        }
-                        const total = row.RECEIVE;
-                        res.parts[chartTitle].push([
-                            row.NAME,
-                            row.LINKED,
-                            row.ADDED,
-                            row.NO_LINKS,
-                            row.ERRORS,
-                            row.ERR_AND_SEG
-                        ]);
+                        if(res.bars[row.FLOW_TYPE] === undefined){
+                            res.bars[row.FLOW_TYPE] = [['Тип', 'Сопоставлено', 'Добавлено', 'Ошибки', 'В работе']];
+                        } 
+                        res.bars[row.FLOW_TYPE].push([row.NAME, row.FNUM, row.MNUM, row.ENUM, row.NNUM]);
                     }
+
+                    console.log(res);
                 }
                 return res;
             }
@@ -156,31 +167,34 @@
                     },
                     isStacked: 'percent',
                     series: {
-                        0: { color: '#363' },
-                        1: { color: '#090' },
-                        2: { color: '#fb0' },
-                        3: { color: '#f33' },
-                        4: { color: '#900' },
+                        0: { color: '#252' },
+                        1: { color: '#2a2' },
+                        2: { color: '#c33' },
+                        3: { color: '#ccc' },
                     }
                 }
 
-                const data = {};
-                me.request(data, function (res) {
-
-                    const dt = new Date();
-                    $('#time_label').text(dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString());
-
+                me.request('i', function (res) {
                     // console.log(res);
                     const data = me.prepareData(res);
-                    // console.log(data);
-                    const keys = Object.keys(data.parts);
+                    me.pies[0].draw(
+                        google.visualization.arrayToDataTable(data.dogs), 
+                        { title: 'Договоры', height: 400, width: '100%' }
+                    );
+                    me.pies[1].draw(
+                        google.visualization.arrayToDataTable(data.objects), 
+                        { title: 'Объекты', height: 400, width: '100%' }
+                    );
+                    me.pies[2].draw(
+                        google.visualization.arrayToDataTable(data.devices), 
+                        { title: 'Приборы учета', height: 400, width: '100%' }
+                    );
+
+
+                    const keys = Object.keys(data.bars);
                     for (const i in keys) {
                         const key = keys[i];
-                        const perc_data = google.visualization.arrayToDataTable(data.common[i].rows);
-                        me.pies[i].draw(perc_data, { title: data.common[i].title, height: 400, width: '100%' });
-
-
-                        const process_data = google.visualization.arrayToDataTable(data.parts[key]);
+                        const process_data = google.visualization.arrayToDataTable(data.bars[key]);
                         me.drawLines(key, me.charts[i], process_data, chart_options);
                         me.tabs[i].draw(process_data, { showRowNumber: true, height: '100%' });
                     }

@@ -1,0 +1,10 @@
+WITH X AS (
+    SELECT KOD_OBJTYPE TYPE, ID_IES AS KEY, COUNT(1) AS NUM 
+    FROM IER_LINK_OBJECTS 
+    GROUP BY KOD_OBJTYPE, ID_IES 
+    HAVING COUNT(1) > 1 
+)
+SELECT DECODE(TYPE, 1, 'DOG', 2, 'ABN', 3, 'OBJ', 4, 'ATP', 7, 'PNT', 9, 'PU', 10, 'REG', 'X3') TYPE, 
+    REPLACE(KEY, 'http://trinidata.ru/sigma/', '') KEY, NUM
+    FROM x
+    ORDER BY 3 DESC

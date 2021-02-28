@@ -1,0 +1,26 @@
+body {
+    color: rgb(128, 128, 128);
+    background-color: rgb(0, 0, 0);
+    text-align: left;
+    line-height-step: 1.8;
+    margin-top: 0px;
+    margin-bottom: 4px;
+    margin-right: 50px;
+    margin-left: 50px;
+    text-indent: 3em;
+    font-weight: 300;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: rgb(202, 202, 202);
+    background-color: rgb(0, 0, 0) !important;
+    border-style: none !important;
+    text-align: left;
+    font-style: italic;
+    font-weight: bold;
+}

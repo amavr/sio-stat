@@ -274,14 +274,14 @@
                     $('#tran_id').val(rows[0].TRAN_ID);
                 }
                 for (const row of rows) {
-                    const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.length > 80;
+                    const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.includes('(');
                     const hrow = html
                         .replace('##lvl##', row.LVL)
                         .replace('##tag##', row.TAG)
                         .replace('##dt##', row.DT.replace('T', ' ').replace('Z', ' '))
                         .replace('##id##', row.ID)
                         .replace('##key##', row.KEY)
-                        .replace('##msg##', row.MSG)
+                        .replace('##msg##', row.MSG.replace(/\r/g, '').replace(/\n/g, '<br/>'))
                         .replace('##tran_id##', row.TRAN_ID)
                         .replace('##a_beg##', clicked ? '<a class="to_fmt" href="#">' : '')
                         .replace('##a_end##', clicked ? '</a>' : '');
@@ -426,6 +426,8 @@
                         $('#end_id').val(rows[0].END_ID);
                         const cond = view.getTopCondition();
                         await me.getStat(cond);
+                        cond.msg = null;
+                        await me.publishTransactList(cond);
                     }
                 }
                 finally {

@@ -1,0 +1,1 @@
+SELECT ID, KOD_OBJTYPE, DT, FLOW_TYPE, TAG FROM IER_LINK_OBJECTS WHERE ID_IES = 'http://trinidata.ru/sigma/'||:key ORDER BY ID
