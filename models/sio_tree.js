@@ -452,28 +452,20 @@ class IseDog extends BaseNode {
         this.title = `${this.visible.ndog} (${this.visible.sname})`;
     }
 
-    static getFindSql(id) {
-        return 'SELECT d.KOD_DOG, d.NDOG, d.DAT_NUMDOG, d.PR_ACTIVE, o.SNAME, d.U_M, d.D_M ' +
-            `FROM KR_DOGOVOR d, KR_ORG o WHERE d.KOD_DOG = ${id} AND o.KODP = d.DEP`;
+    static getCommonSQL() {
+        return 'SELECT d.KOD_DOG as ID, d.KOD_DOG, d.NDOG, d.DAT_NUMDOG, d.PR_ACTIVE, o.SNAME, d.U_M, d.D_M FROM KR_DOGOVOR d, KR_ORG o WHERE o.KODP = d.DEP'; 
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND d.KOD_DOG = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
     }
 
     static create(row) {
         return new IseDog(row);
-    }
-
-    async init(withChildren) {
-        if (withChildren) {
-            await this.loadObjects();
-        }
-        await this.loadPairs();
-    }
-
-    async loadObjects() {
-        // this.nodes = await SioObj.findById(this.id, true);
-    }
-
-    async loadPairs() {
-
     }
 }
 

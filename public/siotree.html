@@ -108,7 +108,7 @@
                 },
                 loadChildren: async function (item) {
                     console.log(item);
-                    if(item.loaded){
+                    if(item.source === 'ISE' || item.loaded){
                         return;
                     }
                     let answer = [];

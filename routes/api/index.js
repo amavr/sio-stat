@@ -612,8 +612,8 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
         for (const row of result.rows) {
             switch (row.KOD_OBJTYPE) {
                 case 1:
-                    const ise_rows = await IseDog.findById(row.ID);
-                    answer = [...answer, ...ise_rows];
+                    const ise_info = await IseDog.load(row.ID);
+                    answer.push(ise_info);
                     // row.visible = ise_rows.visible;
                     // Utils.copyProps(ise_rows[0], row);
                     break;
