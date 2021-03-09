@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/links.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Связи ИСЭ-СИО</title>
+</head>
+
+<body style="padding: 0 24px;">
+
+    <div id="app">
+        <h1>{{key}}</h1>
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
+
+        <section>
+            <details :key="sio_abon.id" :open="sio_abon.selected ? true : false"  v-bind:class="(sio_abon.id === key) ? 'selected':''">
+                <summary>{{sio_abon.title}}</summary>
+                <div>
+                    <table>
+                        <tr>
+                            <td class="links" colspan="2" v-on:click="openPairs(sio_abon.id)">Открыть все пары</td>
+                        </tr>
+                        <tr v-for="(value, name) in sio_abon.visible">
+                            <td>{{name}}</td>
+                            <td>{{value}}</td>
+                        </tr>
+                    </table>
+                    <details v-for="(dog, index) in sio_abon.dogs" :key="dog.id" :open="dog.selected ? true : false" v-bind:class="(dog.id === key) ? 'selected':''">
+                        <summary>{{dog.title}}</summary>
+                        <div>
+                            <table>
+                                <tr>
+                                    <td class="links" colspan="2" v-on:click="openPairs(dog.id)">Открыть все пары</td>
+                                </tr>
+                                <tr v-for="(value, name) in dog.visible">
+                                    <td>{{name}}</td>
+                                    <td>{{value}}</td>
+                                </tr>
+                            </table>
+
+                            <details v-for="(obj, index) in dog.objects" :key="obj.id" :open="obj.selected ? true : false"  v-bind:class="(obj.id === key) ? 'selected':''">
+                                <summary>{{obj.title}})</summary>
+                                <div>
+                                    <table>
+                                        <tr>
+                                            <td class="links" colspan="2" v-on:click="openPairs(obj.id)">Открыть все
+                                                пары</td>
+                                        </tr>
+                                        <tr v-for="(value, name) in obj.visible">
+                                            <td>{{name}}</td>
+                                            <td>{{value}}</td>
+                                        </tr>
+                                    </table>
+
+                                    <details v-for="(sup, index) in obj.sup_points" :key="sup.id" :open="sup.selected ? true : false" v-bind:class="(sup.id === key) ? 'selected':''">
+                                        <summary>{{sup.title}})</summary>
+                                        <div>
+                                            <table>
+                                                <tr>
+                                                    <td class="links" colspan="2" v-on:click="openPairs(sup.id)">Открыть все пары</td>
+                                                </tr>
+                                                <tr v-for="(value, name) in sup.visible">
+                                                    <td>{{name}}</td>
+                                                    <td>{{value}}</td>
+                                                </tr>
+                                            </table>
+
+                                            <details v-for="(cnt, index) in sup.cnt_points" :key="cnt.id" :open="cnt.selected ? true : false" v-bind:class="(cnt.id === key) ? 'selected':''">
+                                                <summary>{{cnt.title}})</summary>
+                                                <div>
+                                                    <table>
+                                                        <tr>
+                                                            <td class="links" colspan="2" v-on:click="openPairs(cnt.id)">Открыть все пары</td>
+                                                        </tr>
+                                                        <tr v-for="(value, name) in cnt.visible">
+                                                            <td>{{name}}</td>
+                                                            <td>{{value}}</td>
+                                                        </tr>
+                                                    </table>
+
+                                                    <details v-for="(unit, index) in cnt.units" :key="unit.id" :open="unit.selected ? true : false" v-bind:class="(unit.id === key) ? 'selected':''">
+                                                        <summary>{{unit.title}}</summary>
+                                                        <div>
+                                                            <table>
+                                                                <tr>
+                                                                    <td class="links" colspan="2" v-on:click="openPairs(unit.id)">Открыть все пары</td>
+                                                                </tr>
+                                                                <tr v-for="(value, name) in unit.visible">
+                                                                    <td>{{name}}</td>
+                                                                    <td>{{value}}</td>
+                                                                </tr>
+                                                            </table>
+                                                            <details v-for="(ini, index) in unit.registers" :key="ini.id" :open="ini.selected ? true : false" v-bind:class="(ini.id === key) ? 'selected':''">
+                                                                <summary>{{ini.title}}</summary>
+                                                                <div>
+                                                                    <table>
+                                                                        <tr>
+                                                                            <td class="links" colspan="2" v-on:click="openPairs(ini.id)">Открыть все пары</td>
+                                                                        </tr>
+                                                                        <tr v-for="(value, name) in ini.visible">
+                                                                            <td>{{name}}</td>
+                                                                            <td>{{value}}</td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </div>
+                                                            </details>
+                                                        </div>
+                                                    </details>
+                                                </div>
+                                            </details>
+                                        </div>
+                                    </details>
+                                </div>
+                            </details>
+                        </div>
+                    </details>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                error: null,
+                key: null,
+                sio_abon: {},
+            },
+            created() {
+                console.log('Here!');
+
+                try {
+                    // const key = decodeURI(location.href.split('?')[1].split('&')[0].split('=')[1]);
+                    // const key64 = encodeURI(btoa(unescape(encodeURIComponent(key))));
+                    // console.log(`key: ${key}, key64: ${key64}`);
+                    // this.loadInfo(key64);
+
+                    // const key = decodeURI(location.href.split('?')[1].split('&')[0].split('=')[1]).replace(/\x20/g, '&');
+                    const pair = location.href.split('?')[1].split('&')[0].split('=');
+                    const key_name = pair[0].toLowerCase();
+                    const key = pair[1];
+                    this.key = decodeURI(key);
+                    document.title = this.key;
+                    if (key_name === 'sio') {
+                        this.loadInfo(key);
+                    } else if (key_name === 'ise') {
+                        this.loadInfo(key);
+                    } else {
+                        throw new Error('Ошибка в URL: не указан параметр SIO или ISE')
+                    }
+                } catch (ex) {
+                    this.error = ex.message;
+                }
+
+                // const addr = new URL(location.href);
+                // const key = addr.searchParams.get('key');
+            },
+            methods: {
+                openPairs: async function (ies) {
+                    console.log(ies);
+                    const roots = await this.loadPairs(ies);
+                    for (const root of roots) {
+                        const key = root.link;
+                        window.open('siotree.html?sio=' + ies, ies, `menubar=no,toolbar=no,location=no`);
+                    }
+                    console.log(roots);
+                },
+                loadInfo: async function (sioKey) {
+                    this.waiting = true;
+                    try {
+                        const res = await fetch(`/api/v1/links/info/${sioKey}`);
+                        this.sio_abon = await res.json();
+                        // console.log(JSON.stringify(answer));
+                        console.log(this.sio_abon);
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                },
+                loadPairs: async function (sioKey) {
+                    let answer = [];
+                    this.waiting = true;
+                    try {
+                        const res = await fetch(`/api/v1/links/sio2ise/${sioKey}`);
+                        answer = await res.json();
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                    return answer;
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

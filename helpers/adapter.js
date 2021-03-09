@@ -1,6 +1,7 @@
 'use strict';
 
-const array_routes = require('../resources/const.json').ARRAY_ROUTES;
+const CONST = require('../resources/const.json');
+const array_routes = CONST.ARRAY_ROUTES;
 
 module.exports = class Adapter {
 
@@ -40,7 +41,7 @@ module.exports = class Adapter {
      */
     static getVal(node, route, defVal) {
         let val = null;
-        if(defVal === undefined) defVal = null;
+        if (defVal === undefined) defVal = null;
         try {
             const keys = route.split('/').filter(key => key.length > 0);
             const len = keys.length;
@@ -120,7 +121,21 @@ module.exports = class Adapter {
     }
 
 
-    static deletePfx(key){
-        return (key) ? key.replace('http://trinidata.ru/sigma/', '') : null;
+    static deletePfx(key) {
+        return (key)
+            ? (typeof key === 'string'
+                ? key.replace(CONST.SIO_ID_PFX, '')
+                : key)
+            : null;
+    }
+
+    static addPfx(key) {
+        return (key)
+            ? (typeof key === 'string'
+                ? (key.startsWith(CONST.SIO_ID_PFX) 
+                    ? key 
+                    : CONST.SIO_ID_PFX + key)
+                : key)
+            : null;
     }
 }

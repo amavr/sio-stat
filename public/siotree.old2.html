@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/links.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Связи ИСЭ-СИО</title>
+</head>
+
+<body style="padding: 0 24px;">
+
+    <div id="app">
+        <h1>{{page_id}}</h1>
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
+        <section>
+            <tree :nodes="nodes"></tree>
+        </section>
+    </div>
+
+    <script>
+
+        const EVENT_SHOW_ISE_INFO = 'show-ise-info';
+
+        Vue.component('tree', {
+
+            template: `
+<div>
+<details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" v-bind:class="(item.equals) ? 'selected':'x'">
+    <summary>{{item.title}}</summary>
+    <div>
+        <table>
+            <tr v-show="item.source === 'SIO'" >
+                <td class="links" colspan="2">
+                    <span v-on:click="showIseInfo(item)">Запрос в ИСЭ</span>
+                    <tree :nodes="item.ise_nodes"></tree>
+                </td>
+            </tr>
+            <tr v-for="(value, name) in item.visible">
+                <td>{{name}}</td>
+                <td>{{value}}</td>
+            </tr>
+        </table>
+        <tree :nodes="item.nodes"></tree>
+    </div>
+</details>
+</div>
+`,
+            props: ['nodes'],
+            methods: {
+                showIseInfo: async function (item) {
+                    this.$root.$emit(EVENT_SHOW_ISE_INFO, item);
+                },
+            }
+        });
+
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                error: null,
+                page_id: '',
+                nodes: [],
+            },
+            created() {
+                console.log('Here!');
+
+                try {
+                    const pair = location.href.split('?')[1].split('&')[0].split('=');
+                    const key_name = pair[0].toLowerCase();
+                    const key = pair[1];
+                    // document.title = this.id;
+                    if (key_name === 'sio') {
+                        this.loadInfo(key);
+                    } else {
+                        throw new Error('Ошибка в URL: не указан параметр SIO или ISE')
+                    }
+                } catch (ex) {
+                    this.error = ex.message;
+                }
+            },
+            mounted: function(){
+                this.$root.$on(EVENT_SHOW_ISE_INFO, this.onShowIseInfo);
+            },
+            methods: {
+                loadInfo: async function (sioKey) {
+                    this.waiting = true;
+                    try {
+                        const res = await fetch(`/api/v1/links/info/${sioKey}`);
+                        this.nodes = await res.json();
+                        this.page_id = decodeURI(sioKey);
+                        // console.log(this.items);
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                },
+                onShowIseInfo: async function (item) {
+                    let answer = [];
+                    this.waiting = true;
+                    try {
+                        const res = await fetch(`/api/v1/links/sio2ise/${item.id}`);
+                        answer = await res.json();
+                        const node = this.findSioNodeById(this.nodes, item.id);
+                        node.ise_nodes = answer;
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                    return answer;
+                },
+                findSioNodeById: function(nodes, id){
+                    for(const node of nodes){
+                        if(node.id === id){
+                            return node;
+                        }
+                        const child = this.findSioNodeById(node.nodes, id);
+                        if(child !== null){
+                            return child;
+                        }
+                    }
+                    return null;
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

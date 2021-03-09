@@ -42,6 +42,13 @@ module.exports = class Utils {
         return res;
     }
 
+    static copyProps(sourObj, destObj){
+        for(const [key, val] of Object.entries(sourObj)){
+            if(typeof val === 'object') continue;
+            destObj[key] = val;
+        }
+    }
+
     static getForecastTime(data){
         data.answer = {
             end_dt: null,

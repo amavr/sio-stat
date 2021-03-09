@@ -16,17 +16,20 @@
 <body style="padding: 0 24px;">
     <h1>Проблемные связи</h1>
     <div id="app">
-        <div id="loader" v-bind:class = "(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
         <div id="error_box" class="alert alert-warning" style="display: none;"></div>
 
         <section>
             <details class="main" v-for="(link, index) in sio_links" :key="index">
-                <summary style="width:100%;" v-on:click="clickSummary(link, index, $event)">
+                <!-- <summary style="width:100%;" v-on:click="clickSummary(link, index, $event)"> -->
+                <summary style="width:100%;">
                     <span class="num">{{link.NUM}}</span>
                     <span class="type">{{link.TYPE}}</span>
-                    <span>{{link.KEY}}</span>
+                    <a v-bind:href="'siotree.html?sio='+link.KEY" target="_blank">
+                        <span>{{link.KEY}}</span>
+                    </a>
                 </summary>
-                <div>
+                <!-- <div>
                     <details>
                         <summary>Потребитель #987298347</summary>
                         <div>
@@ -44,7 +47,7 @@
                             </details>
                         </div>
                     </details>
-                </div>
+                </div> -->
             </details>
         </section>
     </div>
@@ -76,31 +79,6 @@
                     }
                     this.waiting = false;
                 },
-                clickSummary: async function (item, index, e) {
-                    const url = new URL(location.href).origin + '/objlinks.html?key=' + item.KEY;
-                    window.open(url, "_blank");
-                    // console.log(item);
-                    // console.log(index);
-                    // console.log(e);
-                    let box = e.srcElement;
-                    while (box.nodeName !== 'DETAILS') {
-                        box = box.parentElement;
-                    }
-
-                    // повторно не запрашивается
-                    if (box.classList.contains('filled')) {
-                        return;
-                    }
-
-                    try {
-                        const res = await fetch(`/api/v1/links/sio_item/${item.TYPE}/${item.KEY}`);
-                        const answer = await res.json();
-                        this.sio_links[index] = answer;
-                        box.classList.add('filled');
-                    } catch (ex) {
-                        console.error(ex);
-                    }
-                }
             }
         });
     </script>

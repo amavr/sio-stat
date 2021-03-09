@@ -7,6 +7,7 @@ const moment = require('moment');
 const sqlFormatter = require('sql-formatter');
 
 const cfg = require('../../config').api;
+const CONST = require('../../resources/const');
 const holder = require('../../helpers/sql_holder');
 const Utils = require('../../helpers/utils');
 const DBHelper = require('../../helpers/db_helper');
@@ -18,7 +19,20 @@ const Adapter = require('../../helpers/adapter');
 const log = log4js.getLogger('API');
 
 const SAbon = require('../../models/sio_tree');
-const { SioAbon } = require('../../models/sio_tree');
+const {
+    ALL_CHILDREN,
+    WO_CHILDREN,
+    DIR_CHILDREN,
+    Glob,
+    BaseNode,
+    SioAbon,
+    SioDog,
+    SioObj,
+    SioAttp,
+    SioPoint,
+    SioPU,
+    SioRegister,
+    IseDog } = require('../../models/sio_tree');
 
 const http_codes = [204, 301, 304, 400, 401, 403, 404, 500, 503];
 
@@ -274,9 +288,6 @@ router.get('/v1/log/range/:labelId', async (req, res) => {
     }
 });
 
-
-
-
 router.get('/v1/times/labels/:labelId', async (req, res) => {
     try {
         const sql = `SELECT code, val FROM sio_counters WHERE SIO_TIME_ID = '${req.params.labelId}' ORDER BY code`;
@@ -292,7 +303,6 @@ router.get('/v1/times/labels/:labelId', async (req, res) => {
         res.status(500).send(ex.message);
     }
 });
-
 
 router.get('/v1/times/labels/log/:labelId', async (req, res) => {
     try {
@@ -312,7 +322,6 @@ router.get('/v1/times/labels/log/:labelId', async (req, res) => {
         res.status(500).send(ex.message);
     }
 });
-
 
 router.post('/v1/sql', async (req, res) => {
     const sql = req.body.sql;
@@ -369,7 +378,6 @@ router.get('/v1/transact/last', async (req, res) => {
     }
 });
 
-
 router.get('/v1/transact/:tran_id', async (req, res) => {
     const sql = holder.get('tran_rows');
     const binds = [req.params.tran_id];
@@ -413,8 +421,12 @@ router.get('/v1/links/dblise', async (req, res) => {
 
 router.get('/v1/links/info/:key', async (req, res) => {
     try {
+        // req.params.key = Buffer.from(req.params.key, 'base64').toString();
+        // req.params.key = req.params.key.startsWith('column') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key;
+        const key = req.params.key.startsWith('column') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key;
         let sql = holder.get('links_ise_keys');
-        let binds = [req.params.key];
+        let binds = [key];
+        console.debug(req.params.key);
 
         let result = await db_helper.select(sql, binds);
         if (!result.success) {
@@ -439,7 +451,7 @@ router.get('/v1/links/info/:key', async (req, res) => {
         const type = pairs[0].KOD_OBJTYPE;
 
         /// получение ID абонента для начала построения дерева объекта
-        sql = `SELECT DBG_TOOLS.GET_SIO_ROOT( 'http://trinidata.ru/sigma/${req.params.key}', ${type}) as ABON_KODP FROM dual`;
+        sql = `SELECT DBG_TOOLS.GET_SIO_ROOT( '${key}', ${type}) as ABON_KODP FROM dual`;
         result = await db_helper.select(sql, []);
 
         if (!result.success) {
@@ -459,13 +471,15 @@ router.get('/v1/links/info/:key', async (req, res) => {
         const sio_abon_id = Adapter.deletePfx(result.rows[0].ABON_KODP);
 
         /// построение дерева объекта
-        const sio = [];
-
-        /// 1. АБОНЕНТ
         try {
-            const abon = await SioAbon.findById(db_helper, sio_abon_id);
-            console.debug(abon);
-            res.send(abon);
+            Glob.db_helper = db_helper;
+
+            const abons = await SioAbon.findById(sio_abon_id, DIR_CHILDREN);
+            for (const abon of abons) {
+                abon.markBranch(req.params.key, 'selected', true);
+            }
+            // console.debug(abons);
+            res.json(abons);
         }
         catch (ex) {
             const msg = { message: ex.message, stack: ex.stack };
@@ -481,6 +495,161 @@ router.get('/v1/links/info/:key', async (req, res) => {
         return;
     }
 });
+
+router.get('/v2/links/info/:key', async (req, res) => {
+    try {
+        // req.params.key = Buffer.from(req.params.key, 'base64').toString();
+        // req.params.key = req.params.key.startsWith('column') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key;
+        const key = req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key;
+
+        let abon = null;
+
+        /// 1. get key chain to parent
+        const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))`;
+        const chain_res = await db_helper.select(chain_sql, [key]);
+
+        Glob.db_helper = db_helper;
+
+        /// 2. query all nodes from chain by id
+        if (chain_res.success) {
+            if (chain_res.rows.length > 0) {
+
+                if (chain_res.rows[0].IES.startsWith('0')) {
+                    const parts = chain_res.rows[0].IES.split(',');
+                    throw new Error(parts[1]);
+                }
+
+                let parent = null;
+                for (let i = chain_res.rows.length - 1; i >= 0; i--) {
+                    const parts = chain_res.rows[i].IES.split(',');
+                    const node = await Glob.create(parts[1], parseInt(parts[0]));
+                    if (abon === null) {
+                        abon = node;
+                    }
+                    else {
+                        await parent.replaceChild(node);
+                    }
+                    await node.loadChildren();
+                    node.loaded = true;
+                    parent = node;
+                }
+            }
+        }
+        else {
+            throw new Error(chain_res.error);
+        }
+
+        abon.markBranch(req.params.key, 'selected', true);
+        res.json([abon]);
+    }
+    catch (ex) {
+        const msg = { message: ex.message, stack: ex.stack };
+        res.status(500).send(msg);
+        console.error(msg);
+        return;
+    }
+});
+
+router.get('/v1/links/node-children/:key', async (req, res) => {
+    try {
+        const key = req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key;
+
+        let abon = null;
+
+        /// 1. get key chain to parent
+        const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))`;
+        const chain_res = await db_helper.select(chain_sql, [key]);
+
+        Glob.db_helper = db_helper;
+
+        /// 2. query all nodes from chain by id
+        if (chain_res.success) {
+            if (chain_res.rows.length > 0) {
+
+                const parts = chain_res.rows[0].IES.split(',');
+
+                if (chain_res.rows[0].IES.startsWith('0')) {
+                    const parts = chain_res.rows[0].IES.split(',');
+                    throw new Error(parts[1]);
+                }
+
+                const node = await Glob.create(parts[1], parseInt(parts[0]));
+                await node.loadChildren();
+                node.loaded = true;
+
+                res.json(node.nodes);
+            }
+            else{
+                res.json([]);
+            }
+        }
+        else {
+            throw new Error(chain_res.error);
+        }
+    }
+    catch (ex) {
+        const msg = { message: ex.message, stack: ex.stack };
+        res.status(500).send(msg);
+        console.error(msg);
+    }
+});
+
+router.get('/v1/links/sio2ise/:key', async (req, res) => {
+    try {
+
+        // req.params.key = Buffer.from(req.params.key, 'base64').toString();
+        const key = req.params.key.startsWith('column') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key;
+
+        // 1. Пары
+        let sql = holder.get('links_ise_keys');
+        let binds = [key];
+        let result = await db_helper.select(sql, binds);
+
+        Glob.db_helper = db_helper;
+
+        let answer = [];
+        // 2. Объекты
+        for (const row of result.rows) {
+            switch (row.KOD_OBJTYPE) {
+                case 1:
+                    const ise_rows = await IseDog.findById(row.ID);
+                    answer = [...answer, ...ise_rows];
+                    // row.visible = ise_rows.visible;
+                    // Utils.copyProps(ise_rows[0], row);
+                    break;
+            }
+        }
+        res.send(answer);
+    }
+    catch (ex) {
+        const msg = { message: ex.message, stack: ex.stack };
+        res.status(500).send(msg);
+        console.error(msg);
+        return;
+    }
+});
+
+router.get('/v1/test', async (req, res) => {
+    try {
+        const key = 'http://trinidata.ru/sigma/Системаио_995230_ТПО_ЮЛ_2215933653';
+        let sql = 'SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))';
+        let binds = [key];
+        let result = await db_helper.select(sql, binds);
+        if (result.success) {
+            res.json(result.rows);
+        }
+        else {
+            throw new Error(result.error);
+        }
+    }
+    catch (ex) {
+        const msg = { message: ex.message, stack: ex.stack };
+        res.status(500).send(msg);
+        console.error(msg);
+        return;
+    }
+});
+
 
 router.get('/v1/links/sio_item/:type/:id', async (req, res) => {
     let sql = holder.get('links_sio_info_' + req.params.type);
