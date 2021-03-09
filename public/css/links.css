@@ -50,6 +50,10 @@ details.main>summary {
     margin: 12px 0;
 }
 
+details.bad{
+    color: red;
+}
+
 summary {
     cursor: pointer;
     padding: 4px;

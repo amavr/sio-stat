@@ -32,8 +32,9 @@
 
             template: `
 <div>
-<details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" v-bind:class="(item.equals) ? 'selected':'x'">
-    <summary v-on:click="loadChildren(item)">{{item.title}}</summary>
+<details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" 
+    v-bind:class="{'selected': item.equals, 'bad': item.error}" >
+    <summary v-on:click="loadChildren($event, item)">{{item.title}}</summary>
     <div>
         <table>
             <tr v-show="item.source === 'SIO'" >
@@ -54,11 +55,17 @@
 `,
             props: ['nodes'],
             methods: {
+                setDetailsClasses: function(isSelected, hasError){
+                    return {
+                        selected: isSelected,
+                        bad: hasError
+                    }
+                },
                 showIseInfo: async function (item) {
                     this.$root.$emit(EVENT_SHOW_ISE_INFO, item);
                 },
-                loadChildren: async function (item) {
-                    this.$root.$emit(EVENT_EXPAND_NODE, item);
+                loadChildren: async function (e, item) {
+                    this.$root.$emit(EVENT_EXPAND_NODE, e.target, item);
                 },
             }
         });
@@ -106,21 +113,27 @@
                     }
                     this.waiting = false;
                 },
-                loadChildren: async function (item) {
+                loadChildren: async function (element, item) {
                     console.log(item);
                     if(item.source === 'ISE' || item.loaded){
                         return;
                     }
                     let answer = [];
                     this.waiting = true;
+                    const node = this.findSioNodeById(this.nodes, item.id);
                     try {
                         const res = await fetch(`/api/v1/links/node-children/${item.id}`);
                         answer = await res.json();
-                        const node = this.findSioNodeById(this.nodes, item.id);
+                        if(res.status === 500){
+                            element.parentElement.classList.add('bad');
+                            element.title = answer.message;
+                            throw new Error(answer.message);
+                        }
                         node.nodes = answer;
                         node.loaded = true;
                     } catch (ex) {
                         this.error = ex.message;
+                        node.error = true;
                     }
                     this.waiting = false;
                     return answer;

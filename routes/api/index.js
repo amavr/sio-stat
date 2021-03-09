@@ -576,8 +576,7 @@ router.get('/v1/links/node-children/:key', async (req, res) => {
                 const parts = chain_res.rows[0].IES.split(',');
 
                 if (chain_res.rows[0].IES.startsWith('0')) {
-                    const parts = chain_res.rows[0].IES.split(',');
-                    throw new Error(parts[1]);
+                    throw new Error(chain_res.rows[0].IES.substr(2));
                 }
 
                 const node = await Glob.create(parts[1], parseInt(parts[0]));
