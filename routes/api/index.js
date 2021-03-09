@@ -32,7 +32,14 @@ const {
     SioPoint,
     SioPU,
     SioRegister,
-    IseDog } = require('../../models/sio_tree');
+    IseDog,
+    IseAbon,
+    IseObj,
+    IseAttp,
+    IsePoint,
+    IsePU,
+    IseReg
+} = require('../../models/sio_tree');
 
 const http_codes = [204, 301, 304, 400, 401, 403, 404, 500, 503];
 
@@ -579,7 +586,7 @@ router.get('/v1/links/node-children/:key', async (req, res) => {
 
                 res.json(node.nodes);
             }
-            else{
+            else {
                 res.json([]);
             }
         }
@@ -610,13 +617,36 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
         let answer = [];
         // 2. Объекты
         for (const row of result.rows) {
+            let ise_node = null;
             switch (row.KOD_OBJTYPE) {
-                case 1:
-                    const ise_info = await IseDog.load(row.ID);
-                    answer.push(ise_info);
-                    // row.visible = ise_rows.visible;
-                    // Utils.copyProps(ise_rows[0], row);
+                case 2:
+                    ise_node = await IseAbon.load(row.ID);
                     break;
+                case 1:
+                    ise_node = await IseDog.load(row.ID);
+                    break;
+                case 3:
+                    ise_node = await IseObj.load(row.ID);
+                    break;
+                case 4:
+                    ise_node = await IseAttp.load(row.ID);
+                    break;
+                case 7:
+                    ise_node = await IsePoint.load(row.ID);
+                    break;
+                case 9:
+                    ise_node = await IsePU.load(row.ID);
+                    break;
+                case 10:
+                    ise_node = await IseReg.load(row.ID);
+                    break;
+            }
+            if (ise_node) {
+                ise_node.visible.dt = row.DT;
+                ise_node.visible.flow = row.FLOW_TYPE
+                ise_node.visible.tag = row.TAG;
+                ise_node.updateTitle();
+                answer.push(ise_node);
             }
         }
         res.send(answer);

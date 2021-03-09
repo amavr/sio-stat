@@ -56,6 +56,10 @@ class BaseNode {
         this.ise_nodes = [];
     }
 
+    // используется для ISE узлов
+    updateTitle(){
+    }
+
     static validateSioId(id) {
         return typeof id === 'string' ? adp.deletePfx(id) : id;
     }
@@ -78,7 +82,7 @@ class BaseNode {
         const result = await Glob.select(sql, [adp.addPfx(id)]);
 
         if (result.rows.length === 0) {
-            throw new Error(`${this.type} NOT FOUND IN SIO_ABON`);
+            throw new Error(`${this.name} NOT FOUND IN DATABASE WIHT KEY ${id}`);
         }
         if (result.rows.length > 1) {
             throw new Error(`MORE ONE ${this.type} FOUND WITH KEY ${id}`);
@@ -406,6 +410,7 @@ class SioRegister extends BaseNode {
             ini_razr2: row.INI_RAZR2,
         }
         this.source = 'SIO';
+        this.type = 'REG';
         this.type = 10;
         this.id = this.visible.ini_kod_point_ini;
         this.parent_id = row.PU_KOD_POINT_PU;
@@ -431,6 +436,49 @@ class SioRegister extends BaseNode {
     }
 }
 
+class IseAbon extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kodp: row.KODP,
+            nump: row.NUMP,
+            name: row.NAME,
+            inn: row.INN,
+            sname: row.SNAME,
+            u_m: row.U_M,
+            d_m: row.D_M,
+            tag: null,
+        };
+        this.source = 'ISE';
+        this.type = 'ABN';
+        this.id = this.visible.kodp;
+        this.parent_id = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
+        this.title = `${this.visible.nump} (${this.visible.tag})`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT p.KODP, P.NUMP, P.NAME, P.INN, P.U_M, P.D_M FROM KR_PAYER p WHERE 1=1';
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND p.KODP = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IseAbon(row);
+    }
+}
+
 class IseDog extends BaseNode {
 
     constructor(row) {
@@ -444,11 +492,16 @@ class IseDog extends BaseNode {
             sname: row.SNAME,
             u_m: row.U_M,
             d_m: row.D_M,
+            tag: null,
         };
         this.source = 'ISE';
         this.type = 'DOG';
         this.id = this.visible.kod_dog;
         this.parent_id = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
         this.title = `${this.visible.ndog} (${this.visible.sname})`;
     }
 
@@ -467,8 +520,236 @@ class IseDog extends BaseNode {
     static create(row) {
         return new IseDog(row);
     }
+
 }
 
+class IseObj extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kod_numobj: row.KOD_NUMOBJ,
+            name: row.NAME,
+            dat_create: row.DAT_CREATE,
+            pr_active: row.PR_ACTIVE,
+            tarif: row.TARIF,
+            u_m: row.U_M,
+            d_m: row.D_M,
+            tag: null,
+        };
+        this.source = 'ISE';
+        this.type = 'OBJ';
+        this.id = this.visible.kod_numobj;
+        this.parent_id = '';
+        this.title = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
+        this.title = `${this.visible.name} (${this.visible.tag})`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT KOD_NUMOBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1'; 
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND KOD_NUMOBJ = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IseObj(row);
+    }
+}
+
+class IseAttp extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kod_attpoint: row.KOD_ATTPOINT,
+            attpoint_name: row.ATTPOINT_NAME,
+            kod_src: row.KOD_SRC,
+            kod_v: row.KOD_V,
+            d_create: row.D_CREATE,
+            d_finish: row.D_FINISH,
+            tag: null,
+        };
+        this.source = 'ISE';
+        this.type = 'ATP';
+        this.id = this.visible.kod_attpoint;
+        this.parent_id = '';
+        this.title = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
+        this.title = `${this.visible.attpoint_name}`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT KOD_ATTPOINT, ATTPOINT_NAME, KOD_SRC, KOD_V, D_CREATE, D_FINISH FROM HR_ATTPOINT WHERE 1=1'; 
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND KOD_ATTPOINT = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IseAttp(row);
+    }
+}
+
+class IsePoint extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kod_point: row.KOD_POINT,
+            nomer: row.NOMER,
+            mesto: row.MESTO,
+            dat_s: row.DAT_S,
+            dat_po: row.DAT_PO,
+            name: row.NAME,
+            tag: null,
+        };
+        this.source = 'ISE';
+        this.type = 'PNT';
+        this.id = this.visible.kod_point;
+        this.parent_id = '';
+        this.title = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
+        this.title = `${this.visible.name}`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT KOD_POINT, NOMER, MESTO, DAT_S, DAT_PO, NAME FROM HR_POINT WHERE 1=1'; 
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND KOD_POINT = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IsePoint(row);
+    }
+}
+
+class IsePU extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kod_point_pu: row.KOD_POINT_PU,
+            nom_pu: row.NOM_PU,
+            dat_s: row.DAT_S,
+            dat_po: row.DAT_PO,
+            dat_pover: row.DAT_POVER,
+            razr: row.RAZR,
+            razr2: row.RAZR2,
+            pr_active: row.PR_ACTIVE,
+            d_m: row.D_M,
+            u_m: row.U_M,
+            tag: null,
+        };
+        this.source = 'ISE';
+        this.type = 'PUE';
+        this.id = this.visible.kod_point_pu;
+        this.parent_id = '';
+        this.title = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
+        this.title = `${this.visible.nom_pu}`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT KOD_POINT_PU, NOM_PU, DAT_S, DAT_PO, DAT_POVER, RAZR, RAZR2, PR_ACTIVE, D_M, U_M  FROM HR_POINT_PU WHERE 1=1'; 
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND KOD_POINT_PU = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IsePU(row);
+    }
+}
+
+class IseReg extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kod_point_ini: row.KOD_POINT_INI,
+            pr_active: row.PR_ACTIVE,
+            dat_s: row.DAT_S,
+            dat_po: row.DAT_PO,
+            rkoeff: row.RKOEFF,
+            kodinterval: row.KODINTERVAL,
+            energy: row.ENERGY,
+            kod_directen: row.KOD_DIRECTEN,
+            tag: null,
+        };
+        this.interval = row.INTERVAL;
+        this.source = 'ISE';
+        this.type = 'REG';
+        this.id = this.visible.kod_point_ini;
+        this.parent_id = '';
+        this.title = '';
+        this.updateTitle();
+    }
+
+    updateTitle(){
+        const dir = this.visible.kod_directen === 1 ? 'Прямое' : 'Обратное';
+        const eng = this.visible.energy === 1 ? 'Активная' : 'Реактивная';
+        this.title = `${this.interval} / ${dir} / ${eng}`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT i.KOD_POINT_INI, i.PR_ACTIVE, i.DAT_S, i.DAT_PO, i.RKOEFF, i.KODINTERVAL, E.ENERGY, E.KOD_DIRECTEN, '+
+            "replace(d.ID_IES, 'http://trinidata.ru/sigma/ТарифнаяЗонаСуток', '') INTERVAL "+
+            'FROM HR_POINT_INI i, HR_POINT_EN e, IER_LINK_DATADICTS d '+
+            'WHERE e.KOD_POINT_EN = i.KOD_POINT_EN AND d.KOD_DICT = 11 AND d.ID (+) = i.KODINTERVAL';
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND i.KOD_POINT_INI = :id`;
+    }
+
+    getChildrenSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IseReg(row);
+    }
+}
 
 module.exports = {
     ALL_CHILDREN: ALL_CHILDREN,
@@ -483,5 +764,11 @@ module.exports = {
     SioPoint: SioPoint,
     SioPU: SioPU,
     SioRegister: SioRegister,
+    IseAbon: IseAbon,
     IseDog: IseDog,
+    IseObj: IseObj,
+    IseAttp: IseAttp,
+    IsePoint: IsePoint,
+    IsePU: IsePU,
+    IseReg: IseReg
 }
