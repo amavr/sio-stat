@@ -1,5 +1,5 @@
 body {
-    font-family: 'Open Sans Condensed';
+    font-family: Arial, 'Open Sans Condensed';
     font-size: 12pt;
 }
 
@@ -7,17 +7,17 @@ body {
     outline: none;
 }
 
-tr:nth-child(odd) {
+table.props {
+    border-spacing: 0;
+    border: solid 1px #ddd;
+}
+
+table.props > tr:nth-child(odd) {
     background: #eee
 }
 
-tr:nth-child(even) {
+table.props > tr:nth-child(even) {
     background: #FFF
-}
-
-table {
-    border-spacing: 0;
-    border: solid 1px #ddd;
 }
 
 td {
@@ -32,10 +32,15 @@ td.ise-links {
 }
 
 td.sio-links {
-    background-color: #FFF;
     padding: 4px;
     border-top: solid 1px #07c;
     background-color: #eff7ff;
+}
+
+td.problems {
+    background-color: rgb(255, 207, 207);
+    padding: 4px;
+    border: solid 1px rgb(128, 0, 0);
 }
 
 td.ise-links span {
@@ -50,7 +55,7 @@ details.main>summary {
     margin: 12px 0;
 }
 
-details.bad{
+details.bad > summary{
     color: red;
 }
 

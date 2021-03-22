@@ -13,20 +13,29 @@
     <script src="js/moment.js"></script>
     <title>Прогноз завершения</title>
     <style>
-        .lab{
+        .lab {
             text-align: center;
-            font-size: 32pt;    
-            margin-bottom: 20px;        
+            font-size: 32pt;
+            margin-bottom: 20px;
         }
+
         .date {
             text-align: center;
             color: red;
-            font-size: 48pt;            
+            font-size: 48pt;
         }
-        .btn{
+
+        .params {
+            width: 300px;
+            margin: 35px auto;
+            text-align: center;
+            font-size: 10pt;
+        }
+
+        .btn {
             text-align: center;
             margin-top: 120px;
-            font-size: 24pt;            
+            font-size: 24pt;
         }
     </style>
 </head>
@@ -37,10 +46,8 @@
     <div style="margin: 80px;">
         <div id="lab" class="lab">Остановлюсь</div>
         <div id="dt" class="date"></div>
-        <div style="text-align: center;margin-top: 100px;"><img id="gif" src="img/snegovik.gif" width="133" height="161"/> </div>
-        <div class="btn">
-            <a id="recalc" href="#">Не верю!</a>
-        </div>
+        <div style="text-align: center;margin-top: 100px;"><img id="gif" src="img/snegovik.gif" width="133" height="161" /> </div>
+        <pre id="params" class="params"></pre>
     </div>
 
     <script>
@@ -50,14 +57,13 @@
             this.wait = function (doWait) {
                 if (doWait) {
                     document.getElementById('loader').classList.add('is-active');
-                }
-                else {
+                } else {
                     document.getElementById('loader').classList.remove('is-active');
                 }
             }
 
             this.request = async function (recalc, callback) {
-                await $.get('/api/v1/forecast/'+ recalc).done(function (data) {
+                await $.get('/api/v1/forecast').done(function (data) {
                     callback(data);
                 });
             }
@@ -65,15 +71,22 @@
             this.showData = function (recalc) {
                 me.request(recalc, function (res) {
                     // moment.locale();         // en
-                    let end_dt = moment.utc(res.end_dt);
-                    const sdt = end_dt.format('DD.MM.YYYY в HH:mm');
-                    document.querySelector('#dt').innerHTML = sdt;
+                    if (res.speed === 0) {
+                        document.querySelector('#dt').innerHTML = 'Скорость = 0';
+                    } else if (res.end_dt === null) {
+                        document.querySelector('#dt').innerHTML = 'неизвестно';
+                    } else {
+                        let end_dt = moment.utc(res.end_dt);
+                        const sdt = end_dt.format('DD.MM.YYYY в HH:mm');
+                        document.querySelector('#dt').innerHTML = sdt;
+                        document.querySelector('#params').innerText = `Скорость ${res.speed} строк/сек\r\nОсталось: ${res.count} строк`;
 
-                    end_dt = end_dt.add(new Date().getTimezoneOffset(), 'minutes');
-                    const cur_dt = new Date().valueOf();
-                    if(end_dt.valueOf() <= cur_dt){
-                        document.querySelector('#lab').innerHTML = 'Готово )))';
-                        document.querySelector('#gif').src = 'img/snowman-dance.gif';
+                        end_dt = end_dt.add(new Date().getTimezoneOffset(), 'minutes');
+                        const cur_dt = new Date().valueOf();
+                        if (end_dt.valueOf() <= cur_dt) {
+                            document.querySelector('#lab').innerHTML = 'Готово )))';
+                            document.querySelector('#gif').src = 'img/snowman-dance.gif';
+                        }
                     }
                 });
             }
@@ -105,8 +118,7 @@
             });
         });
 
-        document.addEventListener('DOMDocumentLoaded', () => {
-        });
+        document.addEventListener('DOMDocumentLoaded', () => {});
     </script>
 
 </body>

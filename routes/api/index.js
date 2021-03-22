@@ -600,6 +600,37 @@ router.get('/v1/links/node-children/:key', async (req, res) => {
     }
 });
 
+router.get('/v1/links/check-children/:key', async (req, res) => {
+    try {
+        const key = req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key;
+
+        /// 1. get key chain to parent
+        const chain_sql = `SELECT IDX, VAL, VAL2 FROM TABLE(DBG_TOOLS.CHILD_CHECKER(:key)) WHERE VAL2 IS NOT NULL ORDER BY VAL`;
+        const answer = await db_helper.select(chain_sql, [key]);
+
+        /// 2. query all nodes from chain by id
+        if (answer.success) {
+
+            const sio_keys = {};
+            for(const row of answer.rows){
+                if(sio_keys[row.VAL] === undefined){
+                    sio_keys[row.VAL] = [{IDX: row.IDX, VAL: row.VAL, VAL2: row.VAL2}];
+                }
+            }
+
+            res.send({audit: sio_keys});
+        }
+        else {
+            throw new Error(answer.error);
+        }
+    }
+    catch (ex) {
+        const msg = { message: ex.message, stack: ex.stack };
+        res.status(500).send(msg);
+        console.error(msg);
+    }
+});
+
 router.get('/v1/links/sio2ise/:key', async (req, res) => {
     try {
 
@@ -613,7 +644,7 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
 
         Glob.db_helper = db_helper;
 
-        let answer = [];
+        let items = [];
         // 2. Объекты
         for (const row of result.rows) {
             let ise_node = null;
@@ -645,9 +676,22 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
                 ise_node.visible.flow = row.FLOW_TYPE
                 ise_node.visible.tag = row.TAG;
                 ise_node.updateTitle();
-                answer.push(ise_node);
+                items.push(ise_node);
             }
         }
+        res.send({ise_nodes: items});
+    }
+    catch (ex) {
+        const msg = { message: ex.message, stack: ex.stack };
+        res.status(500).send(msg);
+        console.error(msg);
+        return;
+    }
+});
+
+router.get('/v1/links/siochildcheck/:siokey', async (req, res) => {
+    try {
+        let answer = [];
         res.send(answer);
     }
     catch (ex) {

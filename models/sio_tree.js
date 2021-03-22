@@ -54,6 +54,7 @@ class BaseNode {
         this.title = '';
         this.nodes = [];
         this.ise_nodes = [];
+        this.audit = [];
     }
 
     // используется для ISE узлов
@@ -98,14 +99,52 @@ class BaseNode {
 
             const nodes = [];
             if (result.success) {
+
+                const children_audit = await this.checkChildren();
+
                 for (const row of result.rows) {
                     const child = this.createChild(row);
-                    if (child) nodes.push(child);
+                    if (child){
+                        nodes.push(child);
+                        if(child.id && children_audit[child.id]){
+                            child.audit = children_audit[child.id];
+                            delete children_audit[child.id];
+                        }
+                    } 
+                }
+                if(Object.keys(children_audit).length > 0){
+                    for(const [key, val] of Object.entries(children_audit)){
+                        this.audit = [...this.audit, ...val];
+                    }
                 }
             }
             this.nodes = nodes;
 
         }
+    }
+
+    async checkChildren(){
+        const sql = `SELECT IDX, VAL, VAL2 FROM TABLE(DBG_TOOLS.CHILD_CHECKER(:key)) WHERE VAL2 IS NOT NULL ORDER BY VAL`;
+        const answer = await Glob.select(sql, [this.id]);
+
+        /// 2. query all nodes from chain by id
+        if (answer.success) {
+
+            const sio_keys = {};
+            for(const row of answer.rows){
+                const key = row.VAL === null ? 'NULL' : row.VAL;
+                if(sio_keys[key] === undefined){
+                    sio_keys[key] = [];
+                }
+                sio_keys[key].push({IDX: row.IDX, VAL: key, VAL2: row.VAL2});
+            }
+
+            return sio_keys;
+        }
+        else{
+            return null;
+        }
+
     }
 
     static create(row) {
