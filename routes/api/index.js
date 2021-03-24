@@ -279,6 +279,28 @@ router.get('/v1/times/labels', async (req, res) => {
     }
 });
 
+router.get('/v1/times/labels/log/:labelId', async (req, res) => {
+    try {
+        const label_id = req.params.labelId;
+        // const sql = `SELECT min(l.id) log_id FROM sio_mdm_log l, sio_times t  WHERE l.dt >= t.dt AND t.id = '${req.params.labelId}'`;
+        const sql = holder.get('log_range_by_label').replace(/##lab##/g, label_id);
+        // console.debug(sql);
+        const result = await db_helper.execSql(sql);
+        if (result.success) {
+            res.send(result.data);
+        }
+        else {
+            res.status(500).send(result.error);
+        }
+    }
+    catch (ex) {
+        res.status(500).send(ex.message);
+    }
+});
+
+
+
+
 router.get('/v1/log/range/:labelId', async (req, res) => {
     try {
         const sql = holder.get('log_label_time_range').replace(/##lab##/g, req.params.labelId);
@@ -311,15 +333,37 @@ router.get('/v1/times/labels/:labelId', async (req, res) => {
     }
 });
 
-router.get('/v1/times/labels/log/:labelId', async (req, res) => {
+router.get('/v1/log/errors/:labelId', async (req, res) => {
     try {
         const label_id = req.params.labelId;
-        // const sql = `SELECT min(l.id) log_id FROM sio_mdm_log l, sio_times t  WHERE l.dt >= t.dt AND t.id = '${req.params.labelId}'`;
-        const sql = holder.get('log_range_by_label').replace(/##lab##/g, label_id);
-        // console.debug(sql);
-        const result = await db_helper.execSql(sql);
+        const sql = holder.get('log_errors');
+        const result = await db_helper.select(sql, [label_id]);
         if (result.success) {
-            res.send(result.data);
+            const data = result.rows === null
+                ? []
+                : result.rows.map((val, i) => {
+                    return [val.MSG, val.NUM];
+                });
+
+            res.send(data);
+        }
+        else {
+            res.status(500).send(result.error);
+        }
+    }
+    catch (ex) {
+        res.status(500).send(ex.message);
+    }
+});
+
+router.post('/v1/log/transacts', async (req, res) => {
+    try {
+        const cond = req.body;
+        // const binds = { expr: cond.expr, beg_id: cond.beg_id, dt_end: cond.end_id };
+        const msg = cond.msg ? cond.msg.substr(0, 50) + '%' : null;
+        const result = await db_helper.select(holder.get('log_transacts'), [cond.labelId, msg]);
+        if (result.success) {
+            res.send(result.rows);
         }
         else {
             res.status(500).send(result.error);
@@ -612,13 +656,13 @@ router.get('/v1/links/check-children/:key', async (req, res) => {
         if (answer.success) {
 
             const sio_keys = {};
-            for(const row of answer.rows){
-                if(sio_keys[row.VAL] === undefined){
-                    sio_keys[row.VAL] = [{IDX: row.IDX, VAL: row.VAL, VAL2: row.VAL2}];
+            for (const row of answer.rows) {
+                if (sio_keys[row.VAL] === undefined) {
+                    sio_keys[row.VAL] = [{ IDX: row.IDX, VAL: row.VAL, VAL2: row.VAL2 }];
                 }
             }
 
-            res.send({audit: sio_keys});
+            res.send({ audit: sio_keys });
         }
         else {
             throw new Error(answer.error);
@@ -679,7 +723,7 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
                 items.push(ise_node);
             }
         }
-        res.send({ise_nodes: items});
+        res.send({ ise_nodes: items });
     }
     catch (ex) {
         const msg = { message: ex.message, stack: ex.stack };

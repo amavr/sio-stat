@@ -23,6 +23,24 @@
     <div id="loader" class="loader loader-default"></div>
     <div id="error_box" class="alert alert-warning" style="display: none;"></div>
     <div class="container-fluid">
+        <div class="row" style="background-color: #eee;padding-top: 20px;">
+            <div class="col-sm">
+                <form>
+                    <div class="form-group row" style="padding-left: 20px;">
+                        <label for="beg_id" class="col-sm-1 col-form-label col-form-label-sm" style="text-align: right;">Start ID</label>
+                        <div class="col-sm-1">
+                            <input type="number" class="form-control form-control-sm" id="beg_id" placeholder="">
+                        </div>
+                        <label for="end_id" class="col-sm-1 col-form-label col-form-label-sm" style="text-align: right;">Last ID</label>
+                        <div class="col-sm-1">
+                            <input type="number" class="form-control form-control-sm" id="end_id" placeholder="">
+                        </div>
+                        <div class="col-sm-8"><button id="btn_request" class="btn btn-primary"
+                                type="button">Запросить</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
         <div>
             <div class="row">
                 <div class="col-sm-4" style="height: 400px; ">
@@ -40,15 +58,12 @@
             <div id="col_tab" class="xcol-sm">
                 <!-- <h3>Transaction ID: <span id="tran_id">-</span></h3> -->
                 <div class="row">
-                    <label for="tran_id" class="col-sm-1 col-form-label col-form-label-sm"
-                        style="text-align: right;">Transaction ID</label>
+                    <label for="tran_id" class="col-sm-1 col-form-label col-form-label-sm" style="text-align: right;">Transaction ID</label>
                     <div class="col-sm-2">
                         <input class="form-control form-control-sm" id="tran_id" placeholder="Enter transact ID">
                     </div>
-                    <div class="col-sm-1"><button id="btn_by_tran" class="btn btn-primary"
-                            type="button">Запросить</button></div>
-                    <div class="col-sm-1"><button id="btn_last_tran" class="btn btn-primary"
-                            type="button">Последняя</button></div>
+                    <div class="col-sm-1"><button id="btn_by_tran" class="btn btn-primary" type="button">Запросить</button></div>
+                    <div class="col-sm-1"><button id="btn_last_tran" class="btn btn-primary" type="button">Последняя</button></div>
                 </div>
 
                 <table class="table">
@@ -164,12 +179,14 @@
 
 
     <script>
+
         const View = function () {
 
             this.wait = function (doWait) {
                 if (doWait) {
                     document.getElementById('loader').classList.add('is-active');
-                } else {
+                }
+                else {
                     document.getElementById('loader').classList.remove('is-active');
                 }
             }
@@ -192,7 +209,15 @@
             }
 
             this.getTopCondition = function () {
-                return {beg_id: null, end_id: null};
+                const res = {};
+                res.beg_id = this.getInputVal('beg_id');
+                res.end_id = this.getInputVal('end_id');
+                return res;
+            }
+
+            this.showCondition = function (cond) {
+                this.setInputVal('beg_id', cond.beg_id);
+                this.getInputVal('end_id', cond.end_id);
             }
 
             this.showModal = function (sql) {
@@ -204,15 +229,16 @@
                 for (const item of items) {
                     if (toRemove) {
                         item.removeEventListener('click', callback);
-                    } else {
+                    }
+                    else {
                         item.addEventListener('click', callback);
                     }
                 }
             }
 
-            this.setActiveLabel = function (lab_id) {
+            this.setActiveLabel = function(lab_id){
                 $('#labels_box li.lab-item').removeClass('active');
-                $('#labels_box li#' + lab_id).addClass('active');
+                $('#labels_box li#'+ lab_id).addClass('active');
             }
 
             this.showLabels = function (labels, onClick) {
@@ -226,8 +252,7 @@
                 for (const lab of labels) {
                     const clone = document.importNode(t_lab, true);
                     clone.setAttribute('id', lab.ID);
-                    clone.innerHTML =
-                        `${lab.DT.substr(0, 16).replace('T', ' ')}<span style="padding-left: 24px;">${lab.NAME}</span><span class="trn-count">[...]</span>`;
+                    clone.innerHTML = `${lab.DT.substr(0, 16).replace('T', ' ')}<span style="padding-left: 24px;">${lab.NAME}</span><span class="trn-count">[...]</span>`;
                     box.appendChild(clone);
                 }
 
@@ -237,8 +262,7 @@
 
             this.showTransactRows = function (rows, onClick) {
                 // const html = $('#templates .block_row').html();
-                const html =
-                    '<tr class="##lvl##"><td>##dt##</td><td>##tag##</td><td>##a_beg####msg####a_end##</td><td>##key##</td></tr>';
+                const html = '<tr class="##lvl##"><td>##dt##</td><td>##tag##</td><td>##a_beg####msg####a_end##</td><td>##key##</td></tr>';
                 const box = document.querySelector('#col_tab .tab_rows');
                 const list_beg = box.querySelectorAll('a.to_fmt');
                 for (const a of list_beg) {
@@ -271,9 +295,9 @@
                 }
             }
 
-            this.setActiveTransact = function (tran_id) {
+            this.setActiveTransact = function(tran_id){
                 $('#trans_box li.lab-item').removeClass('active');
-                $('#trans_box li#' + tran_id).addClass('active');
+                $('#trans_box li#'+ tran_id).addClass('active');
             }
 
             this.showTransactList = function (rows, onClick) {
@@ -283,7 +307,7 @@
                 box.innerHTML = '';
 
                 const tran_num = document.querySelector('.list-group-item.lab-item.active .trn-count');
-                if (tran_num) {
+                if(tran_num){
                     tran_num.innerText = `[${rows.length}]`;
                 }
 
@@ -299,7 +323,8 @@
                 this.setClickItemsListener(box.querySelectorAll('li.lab-item'), onClick);
             }
 
-            this.constructor = function () {}
+            this.constructor = function () {
+            }
 
             this.constructor();
         }
@@ -312,21 +337,36 @@
 
             let lab_id = undefined;
 
+            this.saveCondition = function (cond) {
+                setCookie('condition', JSON.stringify(cond));
+            }
+
+            this.loadCondition = function () {
+                const txt = getCookie('condition');
+                if (txt === undefined) {
+                    return {
+                        beg_id: null,
+                        end_id: null
+                    }
+                }
+                return JSON.parse(txt);
+            }
+
             this.publishTransactRows = async function (tran_id) {
                 view.wait(true);
                 try {
                     view.setActiveTransact(tran_id);
                     const options = {
                         method: "GET",
-                        headers: {
-                            "content-type": "application/json"
-                        }
+                        headers: { "content-type": "application/json" }
                     };
                     const rows = await me.ajax.query(`/api/v1/transact/${tran_id}`, options);
                     view.showTransactRows(rows, me.onRowClick);
-                } catch (ex) {
+                }
+                catch (ex) {
                     view.showError(ex.message);
-                } finally {
+                }
+                finally {
                     view.wait(false);
                 }
             }
@@ -337,49 +377,47 @@
                     const options = {
                         method: "POST",
                         body: JSON.stringify(filter),
-                        headers: {
-                            "content-type": "application/json"
-                        }
+                        headers: { "content-type": "application/json" }
                     };
-                    const rows = await me.ajax.query("/api/v1/log/transacts", options);
+                    const rows = await me.ajax.query("/api/v1/error-trans", options);
                     view.showTransactList(rows, me.onTranListClick);
-                    if (rows.length > 0) {
+                    if(rows.length > 0){
                         me.publishTransactRows(rows[0].TRAN_ID);
-                    } else {
+                    }
+                    else{
                         view.wait(false);
                     }
-                } catch (ex) {
+                }
+                catch (ex) {
                     view.showError(ex.message);
                 }
             }
 
-            this.getLastTransact = async function () {
+            this.getLastTransact = async function(){
                 let tran_id = 0;
                 view.wait(true);
                 try {
                     const options = {
                         method: "GET",
-                        headers: {
-                            "content-type": "application/json"
-                        }
+                        headers: { "content-type": "application/json" }
                     };
                     const data = await me.ajax.query("/api/v1/transact/last", options);
                     tran_id = data.TRAN_ID;
-                } catch (ex) {
+                }
+                catch (ex) {
                     view.showError(ex.message);
-                } finally {
+                }
+                finally {
                     view.wait(false);
                 }
                 return tran_id;
             }
 
-            this.onLabelClick = async function () {
+            this.getLabelLogID = async function () {
                 console.log(this);
                 const options = {
                     method: "GET",
-                    headers: {
-                        "content-type": "application/json"
-                    }
+                    headers: { "content-type": "application/json" }
                 };
 
                 lab_id = this.id;
@@ -387,24 +425,43 @@
 
                 view.wait(true);
                 try {
-                    await me.publishLabelInfo(lab_id);
-                } finally {
+                    const rows = await me.ajax.query("/api/v1/times/labels/log/" + this.id, options);
+                    if (rows.length > 0) {
+                        $('#beg_id').val(rows[0].BEG_ID);
+                        $('#end_id').val(rows[0].END_ID);
+                        const cond = view.getTopCondition();
+                        await me.getStat(cond);
+                        cond.msg = null;
+                        await me.publishTransactList(cond);
+                    }
+                }
+                finally {
                     view.wait(false);
                 }
             }
 
-            this.publishLabelInfo = async function (labelId) {
+            this.publishLabels = async function(){
+                const labels = await me.ajax.query("/api/v1/times/labels", { method: "GET" });
+                console.log(labels);
+                view.showLabels(labels, this.getLabelLogID);
+                view.showTransactList([], me.onTranListClick);
+                view.showTransactRows([], me.onRowClick);
+            }
+
+            this.getStat = async function (filter) {
+                const cond = filter;
+                this.saveCondition(cond);
                 view.wait(true);
                 try {
-                    const options = {
-                        method: "GET",
-                        headers: {
-                            "content-type": "application/json"
-                        }
-                    };
 
-                    const errors = await me.ajax.query("/api/v1/log/errors/" + labelId, options);
+                    const options = {
+                        method: "POST",
+                        body: JSON.stringify(cond),
+                        headers: { "content-type": "application/json" }
+                    };
+                    const errors = await me.ajax.query("/api/v1/errors", options);
                     errors.unshift(['Тип', 'Кол-во']);
+
 
                     chart_data = google.visualization.arrayToDataTable(errors);
                     const draw_options = {
@@ -417,29 +474,14 @@
 
                     view.showTransactRows([], me.onRowClick);
                     view.showTransactList([], me.onTranListClick);
-
-                    const cond = {
-                        labelId: lab_id,
-                        msg: null
-                    }
-                    await me.publishTransactList(cond);
-
-                } catch (ex) {
+                }
+                catch (ex) {
                     view.showError(ex.message);
                     // view.wait(false);
-                } finally {
+                }
+                finally {
                     view.wait(false);
                 }
-            }
-
-            this.publishLabels = async function () {
-                const labels = await me.ajax.query("/api/v1/times/labels", {
-                    method: "GET"
-                });
-                console.log(labels);
-                view.showLabels(labels, this.onLabelClick);
-                view.showTransactList([], me.onTranListClick);
-                view.showTransactRows([], me.onRowClick);
             }
 
             this.onRowClick = async function (e) {
@@ -451,15 +493,15 @@
                     const answer = await me.ajax.query("/api/v1/sql", {
                         method: "POST",
                         body: JSON.stringify(data),
-                        headers: {
-                            "content-type": "application/json"
-                        }
+                        headers: { "content-type": "application/json" }
                     });
 
                     view.showModal(answer.sql);
-                } catch (ex) {
+                }
+                catch (ex) {
                     console.log(ex);
-                } finally {
+                }
+                finally {
                     view.wait(false);
                 }
                 return false;
@@ -471,14 +513,18 @@
                 return false;
             }
 
+            this.onSubmit = function () {
+                const cond = view.getTopCondition();
+                this.getStat(cond);
+            }
+
             this.onChartSelect = function () {
                 const selectedItem = chart.getSelection()[0];
                 if (selectedItem) {
-                    const cond = {
-                        labelId: lab_id,
-                        msg: chart_data.getValue(selectedItem.row, 0)
-                    }
-                    me.publishTransactList(cond);
+                    var value = chart_data.getValue(selectedItem.row, 0);
+                    const cond = view.getTopCondition();
+                    cond.msg = value;
+                    me.publishTransactList(cond);   
                 }
             }
 
@@ -491,6 +537,8 @@
                     view.wait(false);
                 });
 
+                const cond = me.loadCondition();
+                view.showCondition(cond);
                 me.publishLabels();
             }
 
@@ -513,11 +561,13 @@
         });
 
 
-        google.charts.load('current', {
-            'packages': ['corechart']
-        });
+        google.charts.load('current', { 'packages': ['corechart'] });
         google.charts.setOnLoadCallback(() => {
             const ctrl = new Ctrl();
+            document.getElementById('btn_request').addEventListener('click', () => {
+                console.log('btn request clicked');
+                ctrl.onSubmit();
+            });
             $('#btn_show_tran').click(() => {
                 ctrl.publishTransactRows($('#tran_id').val());
             });
@@ -539,6 +589,7 @@
                 // ctrl.publishTransactRows(tran_id);
             });
         });
+
     </script>
 
 </body>

@@ -25,19 +25,20 @@
     </div>
 
     <script>
-
         const EVENT_SHOW_ISE_INFO = 'show-ise-info';
+        const EVENT_EXPAND_NODE = 'expand-node';
 
         Vue.component('tree', {
 
             template: `
 <div>
-<details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" v-bind:class="(item.equals) ? 'selected':'x'">
-    <summary>{{item.title}}</summary>
+<details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" 
+    v-bind:class="{'selected': item.equals, 'bad': item.audit.length > 0}" >
+    <summary v-on:click="loadChildren($event, item)">{{item.title}}</summary>
     <div>
-        <table>
+        <table class="props">
             <tr v-show="item.source === 'SIO'" >
-                <td class="links" colspan="2">
+                <td class="ise-links" colspan="2">
                     <span v-on:click="showIseInfo(item)">Запрос в ИСЭ</span>
                     <tree :nodes="item.ise_nodes"></tree>
                 </td>
@@ -45,6 +46,22 @@
             <tr v-for="(value, name) in item.visible">
                 <td>{{name}}</td>
                 <td>{{value}}</td>
+            </tr>
+            <tr v-show="item.audit.length">
+                <td class="problems" colspan="2">
+                    <details>
+                        <summary>Проблемы</summary>
+                        <div>
+                            <table>
+                                <tr v-for="(a, i) in item.audit">
+                                    <td>{{a.IDX}}</td>
+                                    <td>{{a.VAL}}</td>
+                                    <td>{{a.VAL2}}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </details>
+                </td>
             </tr>
         </table>
         <tree :nodes="item.nodes"></tree>
@@ -54,8 +71,17 @@
 `,
             props: ['nodes'],
             methods: {
+                setDetailsClasses: function (isSelected, hasError) {
+                    return {
+                        selected: isSelected,
+                        bad: hasError
+                    }
+                },
                 showIseInfo: async function (item) {
                     this.$root.$emit(EVENT_SHOW_ISE_INFO, item);
+                },
+                loadChildren: async function (e, item) {
+                    this.$root.$emit(EVENT_EXPAND_NODE, e.target, item);
                 },
             }
         });
@@ -86,14 +112,15 @@
                     this.error = ex.message;
                 }
             },
-            mounted: function(){
+            mounted: function () {
                 this.$root.$on(EVENT_SHOW_ISE_INFO, this.onShowIseInfo);
+                this.$root.$on(EVENT_EXPAND_NODE, this.loadChildren);
             },
             methods: {
                 loadInfo: async function (sioKey) {
                     this.waiting = true;
                     try {
-                        const res = await fetch(`/api/v1/links/info/${sioKey}`);
+                        const res = await fetch(`/api/v2/links/info/${sioKey}`);
                         this.nodes = await res.json();
                         this.page_id = decodeURI(sioKey);
                         // console.log(this.items);
@@ -102,27 +129,69 @@
                     }
                     this.waiting = false;
                 },
+                loadChildren: async function (element, item) {
+                    console.log(item);
+                    if (item.source === 'ISE' || item.loaded) {
+                        return;
+                    }
+                    let answer = [];
+                    this.waiting = true;
+                    const node = this.findSioNodeById(this.nodes, item.id);
+                    try {
+                        let res = await fetch(`/api/v1/links/node-children/${item.id}`);
+                        answer = await res.json();
+                        if (res.status === 500) {
+                            element.parentElement.classList.add('bad');
+                            element.title = answer.message;
+                            throw new Error(answer.message);
+                        }
+                        node.nodes = answer;
+                        node.loaded = true;
+
+                        res = await fetch(`/api/v1/links/check-children/${item.id}`);
+                        answer = await res.json();
+                        if (res.status === 500) {
+                            throw new Error(answer.message);
+                        }
+                        for (const [key, val] of Object.entries(answer.audit)) {
+                            const child = this.findSioNodeById(node.nodes, key);
+                            if (child) {
+                                if (child.audit === undefined) {
+                                    child.audit = [];
+                                }
+                                child.audit.push(val);
+                            }
+                        }
+                    } catch (ex) {
+                        this.error = ex.message;
+                        node.error = true;
+                        console.error(ex.message + ' ' + ex.stack);
+                    }
+                    this.waiting = false;
+                    return answer;
+                },
                 onShowIseInfo: async function (item) {
                     let answer = [];
                     this.waiting = true;
                     try {
-                        const res = await fetch(`/api/v1/links/sio2ise/${item.id}`);
-                        answer = await res.json();
                         const node = this.findSioNodeById(this.nodes, item.id);
-                        node.ise_nodes = answer;
+
+                        let res = await fetch(`/api/v1/links/sio2ise/${item.id}`);
+                        answer = await res.json();
+                        node.ise_nodes = answer.ise_nodes;
                     } catch (ex) {
                         this.error = ex.message;
                     }
                     this.waiting = false;
                     return answer;
                 },
-                findSioNodeById: function(nodes, id){
-                    for(const node of nodes){
-                        if(node.id === id){
+                findSioNodeById: function (nodes, id) {
+                    for (const node of nodes) {
+                        if (node.id === id) {
                             return node;
                         }
                         const child = this.findSioNodeById(node.nodes, id);
-                        if(child !== null){
+                        if (child !== null) {
                             return child;
                         }
                     }

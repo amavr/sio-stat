@@ -6,6 +6,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const log4js = require('log4js');
 const oracledb = require('oracledb');
+const cfg = require('./config');
 
 const hb = require("express-handlebars");
 // const hbs = require("hbs");
@@ -21,6 +22,7 @@ console.log("".padEnd(32, '='));
 
 const apiRouter = require('./routes/api');
 const app = express();
+app.node_port = cfg.port;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
