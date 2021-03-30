@@ -1,1 +1,0 @@
-SELECT * FROM SIO_DOG WHERE DG_KOD_DOG = 'http://trinidata.ru/sigma/'||:id

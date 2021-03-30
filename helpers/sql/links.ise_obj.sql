@@ -4,5 +4,5 @@ SELECT l.DT, l.TAG, l.FLOW_TYPE, T.NAME, o.NUM_OBJ, o.NAME, o.DAT_CREATE, h.KF_A
    AND o.KOD_OBJ = o2.KOD_OBJ
    AND h.KODD = o2.KODD
    AND t.TARIF = o.TARIF
-   AND l.ID_IES = 'http://trinidata.ru/sigma/'||:id 
+   AND l.ID_IES = 'http://trinidata.ru/sigma/'||:key 
  ORDER BY l.DT

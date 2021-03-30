@@ -1,14 +1,9 @@
 'use strict';
 
 const adp = require('../helpers/adapter');
+const db = require('../helpers/db');
 
 class Glob {
-    static db_helper = null;
-
-    static async select(sql, binds) {
-        return await this.db_helper.select(sql, binds);
-    }
-
     static async create(id, objtype) {
         let res = null;
         switch (objtype) {
@@ -58,7 +53,7 @@ class BaseNode {
     }
 
     // используется для ISE узлов
-    updateTitle(){
+    updateTitle() {
     }
 
     static validateSioId(id) {
@@ -80,71 +75,66 @@ class BaseNode {
     static async load(id) {
         // id = this.validateSioId(id);
         const sql = this.getSelfSQL();
-        const result = await Glob.select(sql, [adp.addPfx(id)]);
+        const rows = await db.select(sql, { id: adp.addPfx(id) });
 
-        if (result.rows.length === 0) {
+        if (rows.length === 0) {
             throw new Error(`${this.name} NOT FOUND IN DATABASE WIHT KEY ${id}`);
         }
-        if (result.rows.length > 1) {
+        if (rows.length > 1) {
             throw new Error(`MORE ONE ${this.type} FOUND WITH KEY ${id}`);
         }
 
-        return this.create(result.rows[0]);
+        return this.create(rows[0]);
     }
 
     async loadChildren() {
         const sql = this.getChildrenSQL();
         if (sql !== null) {
-            const result = await Glob.select(sql, [adp.addPfx(this.id)]);
-
+            const rows = await db.select(sql, { id: adp.addPfx(this.id) });
             const nodes = [];
-            if (result.success) {
+
+            if (rows.length > 0) {
 
                 const children_audit = await this.checkChildren();
 
-                for (const row of result.rows) {
+                for (const row of rows) {
                     const child = this.createChild(row);
-                    if (child){
+                    if (child) {
                         nodes.push(child);
-                        if(child.id && children_audit[child.id]){
+                        if (child.id && children_audit[child.id]) {
                             child.audit = children_audit[child.id];
                             delete children_audit[child.id];
                         }
-                    } 
+                    }
                 }
-                if(Object.keys(children_audit).length > 0){
-                    for(const [key, val] of Object.entries(children_audit)){
+                if (Object.keys(children_audit).length > 0) {
+                    for (const [key, val] of Object.entries(children_audit)) {
                         this.audit = [...this.audit, ...val];
                     }
                 }
             }
             this.nodes = nodes;
-
         }
     }
 
-    async checkChildren(){
+    async checkChildren() {
         const sql = `SELECT IDX, VAL, VAL2 FROM TABLE(DBG_TOOLS.CHILD_CHECKER(:key)) WHERE VAL2 IS NOT NULL ORDER BY VAL`;
-        const answer = await Glob.select(sql, [this.id]);
+        const rows = await db.select(sql, { key: this.id });
+
+        const sio_keys = {};
 
         /// 2. query all nodes from chain by id
-        if (answer.success) {
+        if (rows.length > 0) {
 
-            const sio_keys = {};
-            for(const row of answer.rows){
+            for (const row of rows) {
                 const key = row.VAL === null ? 'NULL' : row.VAL;
-                if(sio_keys[key] === undefined){
+                if (sio_keys[key] === undefined) {
                     sio_keys[key] = [];
                 }
-                sio_keys[key].push({IDX: row.IDX, VAL: key, VAL2: row.VAL2});
+                sio_keys[key].push({ IDX: row.IDX, VAL: key, VAL2: row.VAL2 });
             }
-
-            return sio_keys;
         }
-        else{
-            return null;
-        }
-
+        return sio_keys;
     }
 
     static create(row) {
@@ -497,7 +487,7 @@ class IseAbon extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         this.title = `${this.visible.nump} (${this.visible.tag})`;
     }
 
@@ -540,12 +530,12 @@ class IseDog extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         this.title = `${this.visible.ndog} (${this.visible.sname})`;
     }
 
     static getCommonSQL() {
-        return 'SELECT d.KOD_DOG as ID, d.KOD_DOG, d.NDOG, d.DAT_NUMDOG, d.PR_ACTIVE, o.SNAME, d.U_M, d.D_M FROM KR_DOGOVOR d, KR_ORG o WHERE o.KODP = d.DEP'; 
+        return 'SELECT d.KOD_DOG as ID, d.KOD_DOG, d.NDOG, d.DAT_NUMDOG, d.PR_ACTIVE, o.SNAME, d.U_M, d.D_M FROM KR_DOGOVOR d, KR_ORG o WHERE o.KODP = d.DEP';
     }
 
     static getSelfSQL() {
@@ -585,12 +575,12 @@ class IseObj extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         this.title = `${this.visible.name} (${this.visible.tag})`;
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_NUMOBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1'; 
+        return 'SELECT KOD_NUMOBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1';
     }
 
     static getSelfSQL() {
@@ -628,12 +618,12 @@ class IseAttp extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         this.title = `${this.visible.attpoint_name}`;
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_ATTPOINT, ATTPOINT_NAME, KOD_SRC, KOD_V, D_CREATE, D_FINISH FROM HR_ATTPOINT WHERE 1=1'; 
+        return 'SELECT KOD_ATTPOINT, ATTPOINT_NAME, KOD_SRC, KOD_V, D_CREATE, D_FINISH FROM HR_ATTPOINT WHERE 1=1';
     }
 
     static getSelfSQL() {
@@ -671,12 +661,12 @@ class IsePoint extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         this.title = `${this.visible.name}`;
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_POINT, NOMER, MESTO, DAT_S, DAT_PO, NAME FROM HR_POINT WHERE 1=1'; 
+        return 'SELECT KOD_POINT, NOMER, MESTO, DAT_S, DAT_PO, NAME FROM HR_POINT WHERE 1=1';
     }
 
     static getSelfSQL() {
@@ -718,12 +708,12 @@ class IsePU extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         this.title = `${this.visible.nom_pu}`;
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_POINT_PU, NOM_PU, DAT_S, DAT_PO, DAT_POVER, RAZR, RAZR2, PR_ACTIVE, D_M, U_M  FROM HR_POINT_PU WHERE 1=1'; 
+        return 'SELECT KOD_POINT_PU, NOM_PU, DAT_S, DAT_PO, DAT_POVER, RAZR, RAZR2, PR_ACTIVE, D_M, U_M  FROM HR_POINT_PU WHERE 1=1';
     }
 
     static getSelfSQL() {
@@ -764,16 +754,16 @@ class IseReg extends BaseNode {
         this.updateTitle();
     }
 
-    updateTitle(){
+    updateTitle() {
         const dir = this.visible.kod_directen === 1 ? 'Прямое' : 'Обратное';
         const eng = this.visible.energy === 1 ? 'Активная' : 'Реактивная';
         this.title = `${this.interval} / ${dir} / ${eng}`;
     }
 
     static getCommonSQL() {
-        return 'SELECT i.KOD_POINT_INI, i.PR_ACTIVE, i.DAT_S, i.DAT_PO, i.RKOEFF, i.KODINTERVAL, E.ENERGY, E.KOD_DIRECTEN, '+
-            "replace(d.ID_IES, 'http://trinidata.ru/sigma/ТарифнаяЗонаСуток', '') INTERVAL "+
-            'FROM HR_POINT_INI i, HR_POINT_EN e, IER_LINK_DATADICTS d '+
+        return 'SELECT i.KOD_POINT_INI, i.PR_ACTIVE, i.DAT_S, i.DAT_PO, i.RKOEFF, i.KODINTERVAL, E.ENERGY, E.KOD_DIRECTEN, ' +
+            "replace(d.ID_IES, 'http://trinidata.ru/sigma/ТарифнаяЗонаСуток', '') INTERVAL " +
+            'FROM HR_POINT_INI i, HR_POINT_EN e, IER_LINK_DATADICTS d ' +
             'WHERE e.KOD_POINT_EN = i.KOD_POINT_EN AND d.KOD_DICT = 11 AND d.ID (+) = i.KODINTERVAL';
     }
 

@@ -47,6 +47,7 @@
         <div id="lab" class="lab">Остановлюсь</div>
         <div id="dt" class="date"></div>
         <div style="text-align: center;margin-top: 100px;"><img id="gif" src="img/snegovik.gif" width="133" height="161" /> </div>
+        <!-- <div style="text-align: center;margin-top: 100px;"><img id="gif" src="img/moving-gears-animation.gif" width="133" height="161" /> </div> -->
         <pre id="params" class="params"></pre>
     </div>
 
@@ -71,24 +72,41 @@
             this.showData = function (recalc) {
                 me.request(recalc, function (res) {
                     // moment.locale();         // en
-                    if (res.speed === 0) {
+                    if (res.speed === 0 || res.speed === null) {
+                        document.querySelector('#lab').innerHTML = 'Пока стою...';
                         document.querySelector('#dt').innerHTML = 'Скорость = 0';
+                        me.stopGif(document.querySelector('#gif'));
                     } else if (res.end_dt === null) {
                         document.querySelector('#dt').innerHTML = 'неизвестно';
                     } else {
                         let end_dt = moment.utc(res.end_dt);
                         const sdt = end_dt.format('DD.MM.YYYY в HH:mm');
                         document.querySelector('#dt').innerHTML = sdt;
-                        document.querySelector('#params').innerText = `Скорость ${res.speed} строк/сек\r\nОсталось: ${res.count} строк`;
+                        document.querySelector('#params').innerText =
+                            `Скорость ${res.speed} строк/сек\r\nОсталось: ${res.count} строк`;
 
                         end_dt = end_dt.add(new Date().getTimezoneOffset(), 'minutes');
                         const cur_dt = new Date().valueOf();
                         if (end_dt.valueOf() <= cur_dt) {
-                            document.querySelector('#lab').innerHTML = 'Готово )))';
-                            document.querySelector('#gif').src = 'img/snowman-dance.gif';
+                            document.querySelector('#lab').innerHTML = 'Готово!';
+                            // document.querySelector('#gif').src = 'img/snowman-dance.gif';
                         }
                     }
                 });
+            }
+
+            this.stopGif = function (i) {
+                var c = document.createElement('canvas');
+                var w = c.width = i.width;
+                var h = c.height = i.height;
+                c.getContext('2d').drawImage(i, 0, 0, w, h);
+                try {
+                    i.src = c.toDataURL("image/gif"); // if possible, retain all css aspects
+                } catch (e) { // cross-domain -- mimic original with all its tag attributes
+                    for (var j = 0, a; a = i.attributes[j]; j++)
+                        c.setAttribute(a.name, a.value);
+                    i.parentNode.replaceChild(c, i);
+                }
             }
 
             this.constructor = function () {
