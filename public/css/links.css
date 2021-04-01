@@ -15,6 +15,15 @@ h1 {
     outline: none;
 }
 
+.error-box {
+    background-color: #fff;
+    padding: 16px;
+    font-family: Arial;
+    font-size: 14pt;
+    color: #800;
+    border-radius: 4px;
+}
+
 .as-link:hover {
     text-decoration: underline !important;
     cursor: pointer !important;
@@ -115,14 +124,6 @@ table.props td.prop:first-child {
 table.props > tr:nth-child(even) {
     background: #FFF
 } */
-
-div.error-box {
-    background-color: #fff0f0;
-    padding: 16px;
-    font-family: Arial;
-    font-size: 14pt;
-    color: #800;
-}
 
 summary.x>span:hover {
     text-decoration: underline;

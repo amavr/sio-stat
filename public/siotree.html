@@ -55,17 +55,20 @@
         Vue.component('tab', {
             template: `
             <table class="props">
-                <tr v-for="(value, name, index) in obj.visible" class="prop">
+                <tr v-for="(val, name, index) in obj.visible" class="prop">
                     <td>{{name}}</td>
-                    <td v-if="index === 0" v-on:click="findTransacts($event, value)"><span class="as-link">{{value}}</span></td>
-                    <td v-else>{{value}}</td>
+                    <td v-if="index === 0">
+                        <span>{{val}}</span>&nbsp&nbsp
+                        <span class="as-link" v-on:click="findTransacts($event, val)">find log</span>
+                    </td>
+                    <td v-else>{{val}}</td>
                 </tr>
             </table>
             `,
             props: ['obj'],
             methods: {
-                findTransacts: async function (e, value) {
-                    this.$root.$emit(EVENT_FIND_TRASACTS, e.target, value);
+                findTransacts: async function (e, val) {
+                    this.$root.$emit(EVENT_FIND_TRASACTS, e.target, val);
                 },
             }
         });
@@ -234,23 +237,31 @@
                     this.waiting = false;
                     return answer;
                 },
-                findTransacts: async function (value) {
-                    let answer = [];
+                findTransacts: async function (element, value) {
+                    let rows = [];
                     this.waiting = true;
                     try {
-                        const key = value.innerText;
+                        const key = value;
                         console.log('finding...' + key);
 
                         let res = await fetch(`/api/v1/links/log/${key}`);
-                        answer = await res.json();
-                        console.log(answer);
-                        this.showModal(true);
+                        rows = await res.json();
+
+                        if(rows.length > 0){
+                            const r = rows[0];
+                            window.open(`/mdmtransact.html?id=${r.TRAN_ID}`, r.TRAN_ID, "menubar=off,toolbar=off,location=off");
+                        }
+                        else{
+                            this.error = 'В логе не найдено';
+                        }
+                        console.log(rows);
+                        // this.showModal(true);
 
                     } catch (ex) {
                         this.error = ex.message;
                     }
                     this.waiting = false;
-                    return answer;
+                    return rows;
                 },
                 findSioNodeById: function (nodes, id) {
                     for (const node of nodes) {
