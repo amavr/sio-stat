@@ -1,11 +1,8 @@
 'use strict';
 
 const oracledb = require('oracledb');
-const log = require('log4js').getLogger('DBHelper');
-const moment = require('moment');
+const log = require('log4js').getLogger('DB');
 const cfg = require('../config/cfg.json');
-const Utils = require('./utils');
-const sql_holder = require('./sql_holder');
 
 class OracleDB {
 
@@ -17,11 +14,8 @@ class OracleDB {
         this.sqls = {};
         this.pool = null;
 
-        this.params = cfg.databases[cfg.api.dbname].hrPool;
-        this.params.connectString = this.params.cs.join('\n');
-        this.dbname = this.params.cs.join().replace(/.*SERVICE_NAME\s*=\s*(\w+)\W*/gi, '$1');
-        log.info('USED DB: ' + (this.dbname ? this.dbname.toUpperCase() : 'UNKNOWN'));
-
+        this.params = cfg.api.db;
+        log.info(this.params.name.toUpperCase());
     }
 
     setNamedSql(name, sql){
@@ -46,10 +40,9 @@ class OracleDB {
                 await dbcon.close();
             }
             catch (ex) {
-                return ex.message;
+                log.error(ex.message);
             }
         }
-        return null;
     }
 
     async commit(dbcon) {

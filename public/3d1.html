@@ -1,0 +1,199 @@
+<head>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+
+    <script src="//unpkg.com/three"></script>
+    <script src="//unpkg.com/three-spritetext"></script>
+    <script src="//unpkg.com/3d-force-graph"></script>
+    <!--<script src="../../dist/3d-force-graph.js"></script>-->
+</head>
+
+<body>
+    <div id="3d-graph"></div>
+
+    <script>
+        const rootId = 0;
+
+        let gDataX = {};
+
+        const extract = (fromNodes) => {
+
+        }
+
+        const prepareFrom = (parent, children) => {
+            const res = {
+                nodes: [],
+                links: []
+            }
+
+            for (const n of children) {
+                res.nodes.push(n);
+                if (parent) {
+                    res.links.push({
+                        target: n.id,
+                        source: parent.id,
+                        // curvature: 0.8
+                    });
+                }
+
+                if (n.nodes) {
+                    const child_res = prepareFrom(n, n.nodes);
+                    res.nodes = [...res.nodes, ...child_res.nodes];
+                    res.links = [...res.links, ...child_res.links];
+                }
+            }
+
+            return res;
+        }
+
+        const loadData = async () => {
+            const parts = location.href.split('?');
+            if (parts.length > 1) {
+                const pair = parts[1].split('&')[0].split('=');
+                const key_name = pair[0].toLowerCase();
+                const sioKey = pair[1];
+                console.debug(sioKey);
+
+                const res = await fetch(`/api/v2/links/info/${sioKey}`);
+                const nodes = await res.json();
+                const page_id = decodeURI(sioKey);
+                console.debug(nodes);
+
+                return prepareFrom(null, nodes);
+            } else {
+                alert('Укажите SIO идентификатор: ...html?sio=<SioId>');
+                return {};
+            }
+        }
+
+        const loadChildren = async (node) => {
+            const res = await fetch(`/api/v1/links/node-children/${node.id}`);
+            if (res.status < 400) {
+                const nodes = await res.json();
+                return prepareFrom(node, nodes);
+            } else {
+                return {
+                    nodes: [],
+                    links: []
+                }
+            }
+        }
+
+        const getColor = (node) => {
+            let color = 'white';
+            switch (node.type) {
+                case 'ABN':
+                    color = '#FF0000';
+                    break;
+                case 'DOG':
+                    color = '#FF8700';
+                    break;
+                case 'OBJ':
+                    color = '#FFD300';
+                    break;
+                case 'ATP':
+                    color = '#DEFF0A';
+                    break;
+                case 'PNT':
+                    color = '#A1FF0A';
+                    break;
+                case 'PUE':
+                    color = '#0AFF99';
+                    break;
+                case 'REG':
+                    color = '#0AEFFF';
+                    break;
+            }
+            return color;
+        }
+
+        // Random tree
+        const N = 300;
+        const gData = {
+            nodes: [...Array(N).keys()].map(i => ({
+                id: i,
+                collapsed: i !== rootId,
+                childLinks: []
+            })),
+            links: [...Array(N).keys()]
+                .filter(id => id)
+                .map(id => ({
+                    source: Math.round(Math.random() * (id - 1)),
+                    target: id
+                }))
+        };
+
+        // link parent/children
+        const nodesById = Object.fromEntries(gData.nodes.map(node => [node.id, node]));
+        gData.links.forEach(link => {
+            nodesById[link.source].childLinks.push(link);
+        });
+
+        const getPrunedTree = () => {
+            const visibleNodes = [];
+            const visibleLinks = [];
+
+            (function traverseTree(node = nodesById[rootId]) {
+                visibleNodes.push(node);
+                if (node.collapsed) return;
+                visibleLinks.push(...node.childLinks);
+                node.childLinks
+                    .map(link => ((typeof link.target) === 'object') ? link.target : nodesById[link
+                        .target]) // get child node
+                    .forEach(traverseTree);
+            })(); // IIFE
+
+            return {
+                nodes: visibleNodes,
+                links: visibleLinks
+            };
+        };
+
+        setTimeout(async () => {
+            gDataX = await loadData();
+            console.log(gDataX);
+
+            const elem = document.getElementById('3d-graph');
+            const Graph = ForceGraph3D()(elem)
+                // .linkCurvature('curvature')
+                .linkCurveRotation('rotation')
+                .graphData(gDataX)
+                .linkDirectionalParticles(1)
+                .nodeColor(node => getColor(node))
+                .nodeThreeObject(node => {
+                    const sprite = new SpriteText(node.id);
+                    sprite.material.depthWrite = false; // make sprite background transparent
+                    sprite.color = getColor(node);
+                    sprite.textHeight = 3;
+                    return sprite;
+                })
+                .onNodeClick(async (node) => {
+                    const childs = await loadChildren(node);
+                    const data = Graph.graphData();
+                    if (data && data.nodes && data.nodes.length) {
+                        Graph.graphData({
+                            nodes: [...data.nodes, ...childs.nodes],
+                            links: [...data.links, ...childs.links]
+                        });
+                    }
+                })
+                .onNodeDragEnd(node => {
+                    node.fx = node.x;
+                    node.fy = node.y;
+                    node.fz = node.z;
+                })
+            // .nodeColor(node => !node.childLinks.length ? 'green' : node.collapsed ? 'red' : 'yellow')
+            // .onNodeHover(node => elem.style.cursor = node && node.childLinks.length ? 'pointer' : null)
+            // .onNodeClick(node => {
+            //     if (node.childLinks.length) {
+            //         node.collapsed = !node.collapsed; // toggle collapse state
+            //         Graph.graphData(getPrunedTree());
+            //     }
+            // });
+            console.log('hello!')
+        }, 1);
+    </script>
+</body>

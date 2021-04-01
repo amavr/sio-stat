@@ -80,7 +80,7 @@ setInterval(async () => {
         log.debug(JSON.stringify(forecast_data, null, '\t'));
     }
     catch (ex) {
-        log.error(ex.message);
+        log.error(ex);
     }
 
 }, 30000);
@@ -142,6 +142,7 @@ router.get('/v1/forecast', async (req, res) => {
     }
     catch (ex) {
         res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -153,7 +154,8 @@ router.get('/v1/pair-stat', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).json({ msg: ex.error }).end();
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -166,7 +168,8 @@ router.get('/v1/handle-stat/:source', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).json({ msg: ex.error }).end();
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -200,7 +203,8 @@ router.post('/v2/counters', async (req, res) => {
         res.send(data);
     }
     catch (ex) {
-        res.status(500).json({ error: ex.message });
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -211,7 +215,8 @@ router.get('/v1/times/labels', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -222,7 +227,8 @@ router.get('/v1/times/labels/log/:labelId', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -233,7 +239,8 @@ router.get('/v1/log/range/:labelId', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -245,7 +252,8 @@ router.get('/v1/times/labels/:labelId', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -261,7 +269,8 @@ router.get('/v1/log/errors/:labelId', async (req, res) => {
         res.send(data);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -272,7 +281,8 @@ router.post('/v1/log/transacts', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -293,7 +303,8 @@ router.get('/v1/transact/last', async (req, res) => {
         }
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -303,7 +314,8 @@ router.get('/v1/transact/:tran_id', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -313,7 +325,8 @@ router.get('/v1/links/dblise', async (req, res) => {
         res.send(rows);
     }
     catch (ex) {
-        res.status(500).send(ex.message);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -358,10 +371,8 @@ router.get('/v2/links/info/:key', async (req, res) => {
         res.json([abon]);
     }
     catch (ex) {
-        const msg = { message: ex.message, stack: ex.stack };
-        res.status(500).send(msg);
-        console.error(msg);
-        return;
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -395,9 +406,8 @@ router.get('/v1/links/node-children/:key', async (req, res) => {
         }
     }
     catch (ex) {
-        const msg = { message: ex.message, stack: ex.stack };
-        res.status(500).send(msg);
-        console.error(msg);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -421,9 +431,8 @@ router.get('/v1/links/check-children/:key', async (req, res) => {
         res.send({ audit: sio_keys });
     }
     catch (ex) {
-        const msg = { message: ex.message, stack: ex.stack };
-        res.status(500).send(msg);
-        console.error(msg);
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -473,25 +482,34 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
         res.send({ ise_nodes: items });
     }
     catch (ex) {
-        const msg = { message: ex.message, stack: ex.stack };
-        res.status(500).send(msg);
-        console.error(msg);
-        return;
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/links/log/:key', async (req, res) => {
+    try {
+        const binds = { key: req.params.key.startsWith('column') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key };
+        const rows = await db.selectSqlName('links_transacts', binds);
+        res.send(rows);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
 router.get('/v1/test', async (req, res) => {
     try {
+        // throw new Error('test error');
         const binds = { key: 'http://trinidata.ru/sigma/Системаио_995230_ТПО_ЮЛ_2215933653' };
         let sql = 'SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))';
         let rows = await db.select(sql, binds);
         res.json(rows);
     }
     catch (ex) {
-        const msg = { message: ex.message, stack: ex.stack };
-        res.status(500).send(msg);
-        console.error(msg);
-        return;
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 
@@ -518,11 +536,12 @@ router.get('/v1/links/sio_item/:type/:id', async (req, res) => {
             }
         }
         else {
-            res.status(400).send({ error: 'wrong type' });
+            res.status(400).json({ msg: 'wrong type' }).end();
         }
     }
     catch (ex) {
-        res.status(500).send({ error: ex.message });
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
     }
 });
 

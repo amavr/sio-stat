@@ -84,7 +84,7 @@ function onError(error) {
 
 function onListening() {
   require('dns').lookup(require('os').hostname(), function (err, host, fam) {
-    log.info(`RUN on http://${host}:${port}/`);
+    log.info(`http://${host}:${port}/`);
   })
 
 }

@@ -1,81 +1,120 @@
 body {
-    font-family: Arial, 'Open Sans Condensed';
+    font-family: "Segoe UI","Helvetica Neue",Arial,sans-serif;
     font-size: 12pt;
+    background-color: #f5f5f5;
+}
+
+h1 {
+    font-size: 14pt;
+    font-family: Montserrat;
+    color: #7b7b7b;
+    font-weight: 600;
 }
 
 *:focus {
     outline: none;
 }
 
-table.props {
-    border-spacing: 0;
-    border: solid 1px #ddd;
+.as-link:hover {
+    text-decoration: underline !important;
+    cursor: pointer !important;
 }
 
-table.props > tr:nth-child(odd) {
+td {
+    padding: 4px 8px;
+}
+
+
+details.main {
+    margin-left: 0px;
+}
+
+.shifted {
+    margin-left: 32px;
+}
+
+details>summary {
+    cursor: pointer;
+    font-family: 'Montserrat';
+    font-size: 14pt;
+    margin: 6px 0;
+    background-color: #fff;
+    padding: 10px;
+}
+
+div.ise {
+    margin-top: 4px;
+}
+
+div.props {
+    margin-bottom: 16px;
+    font-size: 10pt;
+    margin: 6px 0;
+    padding: 10px;
+}
+
+.selected {
+    font-weight: bold;
+}
+
+.xselected {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    margin: 10px;
+    padding: 12px;
+}
+
+.xselected>div>table.props {
+    color: #07c;
+    border: none 1px #eee;
+}
+
+
+summary>span{
+    padding-left: 8px;
+}
+
+div.props {
+    background-color: #fff;
+}
+
+table.props {
+    border-spacing: 0;
+    margin-bottom: 10px;
+}
+
+div.ise>table.props{
+    border-radius: 4px;
+    padding: 4px;
+    color: #fff;
+    margin: 2px 0;
+}
+
+div.ise>table.FF{
+    background-color: #009f4d;
+}
+
+div.ise>table.FP{
+    background-color: #0077c8;
+}
+
+div.ise>table.CH{
+    background-color: #a51890;
+}
+
+table.props td.prop:first-child {
+    text-align: right;
+    border-right: solid 1px #bbb;
+    padding-right: 8px;
+}
+
+​
+/* table.props > tr:nth-child(odd) {
     background: #eee
 }
 
 table.props > tr:nth-child(even) {
     background: #FFF
-}
-
-td {
-    padding: 2px 8px;
-}
-
-td.ise-links {
-    background-color: #FFF;
-    padding: 4px;
-    border-bottom: solid 1px #07c;
-    background-color: #eff7ff;
-}
-
-td.sio-links {
-    padding: 4px;
-    border-top: solid 1px #07c;
-    background-color: #eff7ff;
-}
-
-td.problems {
-    background-color: rgb(255, 207, 207);
-    padding: 4px;
-    border: solid 1px rgb(128, 0, 0);
-}
-
-td.ise-links span {
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-details.main>summary {
-    cursor: pointer;
-    font-family: 'Montserrat';
-    font-size: 14pt;
-    margin: 12px 0;
-}
-
-details.bad > summary{
-    color: red;
-}
-
-summary {
-    cursor: pointer;
-    padding: 4px;
-    padding-left: 7px;
-}
-
-.selected>summary {
-    color: #07c;
-    font-weight: bold;
-}
-
-.selected>div>table {
-    color: #07c;
-    border: solid 1px #07c;
-}
-
-
+} */
 
 div.error-box {
     background-color: #fff0f0;
@@ -85,20 +124,8 @@ div.error-box {
     color: #800;
 }
 
-details>div {
-    margin-left: 12px;
-    border-left: dashed 1px #000;
-    padding: 2px 0 0 12px;
-    margin-bottom: 16px;
-}
-
-details.main>div {
-    margin-left: 24px;
-    border: solid 1px #eee;
-}
-
-summary:hover {
-    color: #00f;
+summary.x>span:hover {
+    text-decoration: underline;
 }
 
 summary>span {
@@ -117,4 +144,32 @@ summary>span.type {
 
 details.main>summary::-webkit-details-marker {
     display: none;
+}
+
+details.problems{
+    font-family: "Open Sans Condensed";
+}
+
+details.problems > summary{
+    margin: 0;
+}
+
+div.problems {
+    background-color: #fff;
+}
+
+div.problems table{
+    font-family: "Open Sans Condensed";
+    color: #e00;
+}
+
+.fa{
+    border-radius: 4px;
+    padding: 4px;
+    color: #fff;
+    background-color: #009f4d;
+}
+
+details.bad>summary>i.fa{
+    background-color: #fe5000;
 }

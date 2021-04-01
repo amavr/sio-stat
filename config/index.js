@@ -15,6 +15,8 @@ if (process.env.NODE_ENV === 'production') {
 
 if(cfg.api.dbname){
     cfg.api.db = cfg.databases[cfg.api.dbname].hrPool;
+    cfg.api.db.connectString = cfg.api.db.cs.join('\n');
+    cfg.api.db.name = cfg.api.db.cs.join().replace(/.*SERVICE_NAME\s*=\s*(\w+)\W*/gi, '$1')
 }
 
 log4js.configure({

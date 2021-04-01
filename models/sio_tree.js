@@ -50,6 +50,7 @@ class BaseNode {
         this.nodes = [];
         this.ise_nodes = [];
         this.audit = [];
+        this.icon = 'id-card-o';
     }
 
     // используется для ISE узлов
@@ -188,6 +189,7 @@ class SioAbon extends BaseNode {
         this.id = this.visible.abon_kodp;
         this.parent_id = null;
         this.title = `${this.visible.abon_name} (${this.visible.abon_inn})`
+        this.icon = 'id-card-o';
     }
 
     static getCommonSQL() {
@@ -228,6 +230,7 @@ class SioDog extends BaseNode {
         this.id = this.visible.dg_kod_dog;
         this.parent_id = row.ABON_KODP;
         this.title = `${this.visible.dg_ndog} (${this.visible.dg_dat_numdog})`;
+        this.icon = 'file-text-o';
     }
 
     static getCommonSQL() {
@@ -269,6 +272,7 @@ class SioObj extends BaseNode {
         this.parent_id = row.DG_KOD_DOG;
         this.title = `${this.visible.nobj_num} (${this.visible.nobj_name})`;
         this.nodes = [];
+        this.icon = 'object-group';
     }
 
     static getCommonSQL() {
@@ -311,6 +315,7 @@ class SioAttp extends BaseNode {
         this.parent_id = row.NOBJ_KOD_NUMOBJ;
         this.title = `${this.visible.attp_num} (${this.visible.attp_name})`;
         this.nodes = [];
+        this.icon = 'plug';
     }
 
     static getCommonSQL() {
@@ -354,6 +359,7 @@ class SioPoint extends BaseNode {
         this.parent_id = row.ATTP_KOD_ATTPOINT;
         this.title = `${this.visible.pnt_num} (${this.visible.pnt_name})`;
         this.nodes = [];
+        this.icon = 'circle';
     }
 
     static getCommonSQL() {
@@ -400,6 +406,7 @@ class SioPU extends BaseNode {
         this.parent_id = row.PNT_KOD_POINT;
         this.title = this.visible.pu_kind ? `${this.visible.pu_kind} ${this.visible.pu_num}` : `Счетчик ${this.visible.pu_num}`;
         this.nodes = [];
+        this.icon = 'magnet';
     }
 
     static getCommonSQL() {
@@ -440,11 +447,11 @@ class SioRegister extends BaseNode {
         }
         this.source = 'SIO';
         this.type = 'REG';
-        this.type = 10;
         this.id = this.visible.ini_kod_point_ini;
         this.parent_id = row.PU_KOD_POINT_PU;
         this.title = `${this.visible.ini_kodinterval} / ${this.visible.ini_kod_directen}`;
         this.nodes = [];
+        this.icon = 'tachometer';
     }
 
     static getCommonSQL() {

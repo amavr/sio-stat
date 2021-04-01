@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/loader-default.css">
+
+    <script src="js/utils.js"></script>
+    <script src="js/jquery-3.5.1.slim.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+
+
+    <script async="false" src="js/ajax.js"></script>
+    <title>Master data log transaction</title>
+</head>
+
+<body>
+    <div class="bd-content-title">Master data log transaction</div>
+    <div id="loader" class="loader loader-default"></div>
+    <div id="error_box" class="alert alert-warning" style="display: none;"></div>
+    <div class="container-fluid">
+        <div>
+            <div id="col_tab" class="xcol-sm">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Time</th>
+                            <th scope="col">Tag</th>
+                            <th scope="col">Message</th>
+                            <th scope="col">Key</th>
+                        </tr>
+                    </thead>
+                    <tbody class="tab_rows" style="font-size: 10pt;">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="dlg" class="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">SQL</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre id="dlgText"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const View = function () {
+
+            this.wait = function (doWait) {
+                if (doWait) {
+                    document.getElementById('loader').classList.add('is-active');
+                } else {
+                    document.getElementById('loader').classList.remove('is-active');
+                }
+            }
+
+            this.showError = function (msg) {
+                document.getElementById('error_box').innerText = msg;
+                document.getElementById('error_box').style.display = 'block';
+            }
+
+            this.showModal = function (sql) {
+                $('#dlgText').text(sql);
+                $('#dlg').modal('show');
+            }
+
+
+            this.showTransactRows = function (rows, onClick) {
+                // const html = $('#templates .block_row').html();
+                const html =
+                    '<tr class="##lvl##"><td>##dt##</td><td>##tag##</td><td>##a_beg####msg####a_end##</td><td>##key##</td></tr>';
+                const box = document.querySelector('#col_tab .tab_rows');
+                const list_beg = box.querySelectorAll('a.to_fmt');
+                for (const a of list_beg) {
+                    a.removeEventListener('click', onClick)
+                }
+
+                const divs = [];
+                if (rows.length > 0) {
+                    $('#tran_id').val(rows[0].TRAN_ID);
+                }
+                for (const row of rows) {
+                    const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.includes('(');
+                    const hrow = html
+                        .replace('##lvl##', row.LVL)
+                        .replace('##tag##', row.TAG)
+                        .replace('##dt##', row.DT.replace('T', ' ').replace('Z', ' '))
+                        .replace('##id##', row.ID)
+                        .replace('##key##', row.KEY)
+                        .replace('##msg##', row.MSG.replace(/\r/g, '').replace(/\n/g, '<br/>'))
+                        .replace('##tran_id##', row.TRAN_ID)
+                        .replace('##a_beg##', clicked ? '<a class="to_fmt" href="#">' : '')
+                        .replace('##a_end##', clicked ? '</a>' : '');
+                    divs.push(hrow);
+                }
+                box.innerHTML = divs.join('');
+
+                const list_end = box.querySelectorAll('a.to_fmt');
+                for (const a of list_end) {
+                    a.addEventListener('click', onClick)
+                }
+            }
+
+            this.constructor = function () {}
+
+            this.constructor();
+        }
+
+        const Ctrl = function () {
+            const me = this;
+            const view = new View();
+            let chart = null;
+            let chart_data = null;
+
+            let lab_id = undefined;
+
+            this.publishTransactRows = async function () {
+                try {
+                    const pair = location.href.split('?')[1].split('&')[0].split('=');
+                    const tran_id = pair[1];
+
+                    view.wait(true);
+                    try {
+                        const options = {
+                            method: "GET",
+                            headers: {
+                                "content-type": "application/json"
+                            }
+                        };
+                        const rows = await me.ajax.query(`/api/v1/transact/${tran_id}`, options);
+                        view.showTransactRows(rows, me.onRowClick);
+                    } catch (ex) {
+                        view.showError(ex.message);
+                    } finally {
+                        view.wait(false);
+                    }
+                }
+                catch(ex){
+                    view.showError(ex.message);
+                }
+            }
+
+            this.getLastTransact = async function () {
+                let tran_id = 0;
+                view.wait(true);
+                try {
+                    const options = {
+                        method: "GET",
+                        headers: {
+                            "content-type": "application/json"
+                        }
+                    };
+                    const data = await me.ajax.query("/api/v1/transact/last", options);
+                    tran_id = data.TRAN_ID;
+                } catch (ex) {
+                    view.showError(ex.message);
+                } finally {
+                    view.wait(false);
+                }
+                return tran_id;
+            }
+
+            this.onRowClick = async function (e) {
+                e.preventDefault();
+                const data = {};
+                data.sql = this.innerText;
+                view.wait(true);
+                try {
+                    const answer = await me.ajax.query("/api/v1/sql", {
+                        method: "POST",
+                        body: JSON.stringify(data),
+                        headers: {
+                            "content-type": "application/json"
+                        }
+                    });
+
+                    view.showModal(answer.sql);
+                } catch (ex) {
+                    console.log(ex);
+                } finally {
+                    view.wait(false);
+                }
+                return false;
+            }
+
+            this.constructor = function () {
+                me.ajax = new AJAX();
+            }
+
+            this.constructor();
+        }
+
+        window.addEventListener('load', function () {
+            console.log('READY');
+            try {
+                const ctrl = new Ctrl();
+                ctrl.publishTransactRows();
+            } catch (ex) {
+                console.error(ex);
+            }
+        });
+
+    </script>
+
+</body>
+
+</html>
