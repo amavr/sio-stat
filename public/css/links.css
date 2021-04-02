@@ -24,7 +24,7 @@ h1 {
     border-radius: 4px;
 }
 
-.as-link:hover {
+.as-link {
     text-decoration: underline !important;
     cursor: pointer !important;
 }

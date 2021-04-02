@@ -19,32 +19,34 @@
 <body style="padding: 0 24px;">
 
     <div id="app">
+
+        <!-- The Modal -->
+        <div id="myModal" class="modal">
+            <!-- Modal content -->
+            <div class="modal-content">
+                <div style="font-size: 28px;">
+                    <span>Транзакции</span>
+                    <span id="btn-close-tran" class="close">&times;</span>
+                </div>
+                <div class="scrolled">
+                    <table>
+                        <tr v-for="(row) in modal" class="prop">
+                            <td>{{row.LABEL}}</td>
+                            <td><a v-bind:href="'/mdmtransact.html?id=' + row.TRAN_ID"
+                                    v-bind:target="row.TRAN_ID">{{row.DT.substr(0, 16).replace('T', ' ')}}</a></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
         <h1>{{page_id}}</h1>
         <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
         <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
         <section>
             <tree :nodes="nodes"></tree>
         </section>
-
-        <div id="openModal" class="modal">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Название</h3>
-                        <a href="#close" title="Close" class="close">×</a>
-                    </div>
-                    <div class="modal-body">
-                        <table>
-                            <tr v-for="(row) in modal" class="prop">
-                                <td>{{row.LABEL}}</td>
-                                <td>{{row.DT}}</td>
-                                <td>{{row.TRAN_ID}}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -58,8 +60,8 @@
                 <tr v-for="(val, name, index) in obj.visible" class="prop">
                     <td>{{name}}</td>
                     <td v-if="index === 0">
-                        <span>{{val}}</span>&nbsp&nbsp
-                        <span class="as-link" v-on:click="findTransacts($event, val)">find log</span>
+                        <span style="margin-right: 20px;">{{val}}</span>
+                        <span v-show="!Number.isInteger(val)" class="as-link" v-on:click="findTransacts($event, val)">Найти в логе</span>
                     </td>
                     <td v-else>{{val}}</td>
                 </tr>
@@ -79,11 +81,11 @@
 <div>
     <details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" 
         v-bind:class="{'bad': item.audit.length > 0}" >
-        <summary v-bind:class="{'selected': item.equals}" v-on:click="loadChildren($event, item)"><i v-bind:class="'fa fa-' + item.icon"></i><span class="as-link">{{item.title}}</span></summary>
+        <summary v-bind:class="{'selected': item.equals}" v-on:click="loadChildren($event, item)"><i v-bind:class="'fa fa-' + item.icon"></i><span>{{item.title}}</span></summary>
         <div>
             <div class="props">
                 <tab :obj="item"></tab>
-                <span class="as-link" v-show="!item.ise_loaded" v-on:click="showIseInfo(item)">Дополнительно >></span>
+                <span class="as-link" v-show="!item.ise_loaded" v-on:click="showIseInfo(item)">Дополнительно</span>
                 <div v-show="item.ise_loaded" class="ise">
                     <hr color="#ccc" size="1"/>
                     <tab v-for="(item, index) in item.ise_nodes" :key="item.id" :obj="item" v-bind:class="item.visible.tag"></tab>
@@ -161,11 +163,9 @@
             methods: {
                 showModal: function (doShow) {
                     if (doShow) {
-                        document.body.style.overflow = 'hidden';
-                        document.querySelector('#openModal').style.marginLeft = scrollbar;
+                        document.querySelector('#myModal').style.display = 'block';
                     } else {
-                        document.body.style.overflow = 'visible';
-                        document.querySelector('#openModal').style.marginLeft = '0px';
+                        document.querySelector('#myModal').style.display = 'none';
                     }
                 },
                 loadInfo: async function (sioKey) {
@@ -246,16 +246,19 @@
 
                         let res = await fetch(`/api/v1/links/log/${key}`);
                         rows = await res.json();
+                        this.modal = rows;
+                        this.showModal(true);
 
-                        if(rows.length > 0){
-                            const r = rows[0];
-                            window.open(`/mdmtransact.html?id=${r.TRAN_ID}`, r.TRAN_ID, "menubar=off,toolbar=off,location=off");
-                        }
-                        else{
+                        if (rows.length > 0) {
+                            this.modal = rows;
+                            this.showModal(true);
+                            // const r = rows[0];
+                            // window.open(`/mdmtransact.html?id=${r.TRAN_ID}`, r.TRAN_ID,
+                            //     "menubar=off,toolbar=off,location=off");
+                        } else {
                             this.error = 'В логе не найдено';
                         }
                         console.log(rows);
-                        // this.showModal(true);
 
                     } catch (ex) {
                         this.error = ex.message;
@@ -279,10 +282,8 @@
         });
 
         document.addEventListener("DOMContentLoaded", function () {
-            var scrollbar = document.body.clientWidth - window.innerWidth + 'px';
-            document.querySelector('[href="#close"]').addEventListener('click', function () {
-                document.body.style.overflow = 'visible';
-                document.querySelector('#openModal').style.marginLeft = '0px';
+            document.querySelector('#btn-close-tran').addEventListener('click', function () {
+                document.querySelector('#myModal').style.display = 'none';
             });
         });
     </script>
