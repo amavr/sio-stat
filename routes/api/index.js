@@ -499,6 +499,107 @@ router.get('/v1/links/log/:key', async (req, res) => {
     }
 });
 
+router.get('/v1/links/find/:field/:val/:field_out', async (req, res) => {
+    try {
+        let ok = true;
+        const field_val = req.params.field.toUpperCase();
+        const subst = {};
+        subst['#field_val#'] = field_val;
+        subst['#field_out#'] = req.params.field_out.toUpperCase();
+
+        switch (field_val) {
+            case 'ABON_INN':
+                subst['#field_key#'] = 'ABON_KODP';
+                break;
+            case 'DG_NDOG':
+                subst['#field_key#'] = 'DG_KOD_DOG';
+                break;
+            case 'NOBJ_NUM':
+                subst['#field_key#'] = 'NOBJ_KOD_NUMOBJ';
+                break;
+            case 'PU_NUM':
+                subst['#field_key#'] = 'PU_KOD_POINT_PU';
+                break;
+            default:
+                ok = false;
+                break;
+        }
+
+        if (ok) {
+            const rows = await db.selectSqlName('links.find_in_msg', { val: req.params.val }, subst);
+            res.send(rows.map((row) => Object.entries(row)[0][1].substr(26)));
+        }
+        else{
+            res.status(400).json({ msg: `Unknown field ${req.params.field} in route`}).end();
+        }
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/links/16/:field/:key', async (req, res) => {
+    try {
+        const field = req.params.field.toUpperCase();
+        const subst = {};
+        subst['#field_val#'] = field;
+        const binds = { key: req.params.key.startsWith('http') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key };
+
+        const rows = await db.selectSqlName('links.16_attp', binds, subst);
+        res.send(rows);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/links/volumes/:field/:key', async (req, res) => {
+    try {
+        const field = req.params.field.toUpperCase();
+        const subst = {};
+        subst['#field_val#'] = field;
+        const binds = { key: req.params.key.startsWith('http') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key };
+
+        const answer = {};
+
+        let rows = await db.selectSqlName('links.16_attp', binds, subst);
+        for(const row of rows){
+            if(answer[row.YM] === undefined){
+                answer[row.YM] = {}
+            }
+            if(answer[row.YM][row.OBJ_IES] === undefined){
+                answer[row.YM][row.OBJ_IES] = {}
+            }
+            if(answer[row.YM][row.OBJ_IES][row.ATP_IES] === undefined){
+                answer[row.YM][row.OBJ_IES][row.ATP_IES] = {atp: [], ini: []};
+            }
+            answer[row.YM][row.OBJ_IES][row.ATP_IES].atp.push(row);
+        }
+
+        rows = await db.selectSqlName('links.16_ini', binds, subst);
+        for(const row of rows){
+            if(answer[row.YM] === undefined){
+                answer[row.YM] = {}
+            }
+            if(answer[row.YM][row.OBJ_IES] === undefined){
+                answer[row.YM][row.OBJ_IES] = {}
+            }
+            if(answer[row.YM][row.OBJ_IES][row.ATP_IES] === undefined){
+                answer[row.YM][row.OBJ_IES][row.ATP_IES] = {atp: [], ini: []};
+            }
+            answer[row.YM][row.OBJ_IES][row.ATP_IES].ini.push(row);
+        }
+
+        res.send(answer);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
 router.get('/v1/test', async (req, res) => {
     try {
         // throw new Error('test error');
@@ -519,7 +620,7 @@ router.get('/v1/links/sio_item/:type/:id', async (req, res) => {
         let sql = holder.get('links.sio_info_' + req.params.type);
 
         if (sql) {
-            const binds = {key: req.params.id};
+            const binds = { key: req.params.id };
 
             const sio_rows = await db.select(sql, binds);
             if (sio_rows && sio_rows.length > 0) {

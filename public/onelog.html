@@ -97,12 +97,19 @@
                 }
                 for (const row of rows) {
                     const clicked = row.LVL != 'ERR' && row.MSG && row.MSG.includes('(');
+
+                    const key_val = typeof row.KEY === 'string' 
+                        ? row.KEY.startsWith('http://trinidata.ru/sigma/') 
+                            ? `<a href="/siotree.html?sio=${row.KEY.substr(26)}" target="_blank">${row.KEY}</a>`
+                            : row.KEY
+                        : row.KEY;
+
                     const hrow = html
                         .replace('##lvl##', row.LVL)
                         .replace('##tag##', row.TAG)
                         .replace('##dt##', row.DT.replace('T', ' ').replace('Z', ' '))
                         .replace('##id##', row.ID)
-                        .replace('##key##', row.KEY)
+                        .replace('##key##', key_val)
                         .replace('##msg##', row.MSG.replace(/\r/g, '').replace(/\n/g, '<br/>'))
                         .replace('##tran_id##', row.TRAN_ID)
                         .replace('##a_beg##', clicked ? '<a class="to_fmt" href="#">' : '')

@@ -51,6 +51,7 @@ class BaseNode {
         this.ise_nodes = [];
         this.audit = [];
         this.icon = 'id-card-o';
+        this.refs = {};
     }
 
     // используется для ISE узлов
@@ -189,7 +190,10 @@ class SioAbon extends BaseNode {
         this.id = this.visible.abon_kodp;
         this.parent_id = null;
         this.title = `${this.visible.abon_name} (${this.visible.abon_inn})`
-        this.icon = 'id-card-o';
+        this.icon = 'file-earmark-person';
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+        };
     }
 
     static getCommonSQL() {
@@ -230,7 +234,10 @@ class SioDog extends BaseNode {
         this.id = this.visible.dg_kod_dog;
         this.parent_id = row.ABON_KODP;
         this.title = `${this.visible.dg_ndog} (${this.visible.dg_dat_numdog})`;
-        this.icon = 'file-text-o';
+        this.icon = 'vector-pen';
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+        };
     }
 
     static getCommonSQL() {
@@ -272,7 +279,12 @@ class SioObj extends BaseNode {
         this.parent_id = row.DG_KOD_DOG;
         this.title = `${this.visible.nobj_num} (${this.visible.nobj_name})`;
         this.nodes = [];
-        this.icon = 'object-group';
+        this.icon = 'diagram-3-fill';
+
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+            'Объемы': `/siovolumes.html?nobj_kod_numobj=${this.id}`
+        };
     }
 
     static getCommonSQL() {
@@ -316,6 +328,11 @@ class SioAttp extends BaseNode {
         this.title = `${this.visible.attp_num} (${this.visible.attp_name})`;
         this.nodes = [];
         this.icon = 'plug';
+
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+            'Объемы': `/siovolumes.html?attp_kod_attpoint=${this.id}`
+        };
     }
 
     static getCommonSQL() {
@@ -352,6 +369,7 @@ class SioPoint extends BaseNode {
             pnt_dat_s: row.PNT_DAT_S,
             pnt_dat_po: row.PNT_DAT_PO,
             pnt_calc_method: adp.deletePfx(row.PNT_CALC_METHOD),
+            monthly: row.MVOLUMES,
         }
         this.source = 'SIO';
         this.type = 'PNT';
@@ -359,12 +377,22 @@ class SioPoint extends BaseNode {
         this.parent_id = row.ATTP_KOD_ATTPOINT;
         this.title = `${this.visible.pnt_num} (${this.visible.pnt_name})`;
         this.nodes = [];
-        this.icon = 'circle';
+        this.icon = 'node-plus';
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+        };
     }
 
     static getCommonSQL() {
-        return 'SELECT DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD ' +
-            'FROM SIO_ATTP_POINT a, SIO_POINT p WHERE P.PNT_KOD_POINT = A.PNT_KOD_POINT';
+        // return 'SELECT DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD ' +
+        //     'FROM SIO_ATTP_POINT a, SIO_POINT p WHERE P.PNT_KOD_POINT = A.PNT_KOD_POINT';
+
+        return "SELECT DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD, "+
+                    "'01:'||r.RASX_01||', 02:'||r.RASX_02||', 03:'||r.RASX_03||', 04:'||r.RASX_04||', 05:'||r.RASX_05||', 06:'||r.RASX_06||', 07:'||r.RASX_07||', 08:'||r.RASX_08||', 09:'||r.RASX_09||', 10:'||r.RASX_10||', 11:'||r.RASX_11||', 12:'||r.RASX_12 AS mvolumes "+
+                 "FROM SIO_ATTP_POINT a, SIO_POINT p, SIO_RASX r "+
+                "WHERE p.PNT_KOD_POINT = a.PNT_KOD_POINT "+
+                  "AND r.PNT_KOD_POINT (+) = p.PNT_KOD_POINT";
+
     }
 
     static getSelfSQL() {
@@ -406,7 +434,10 @@ class SioPU extends BaseNode {
         this.parent_id = row.PNT_KOD_POINT;
         this.title = this.visible.pu_kind ? `${this.visible.pu_kind} ${this.visible.pu_num}` : `Счетчик ${this.visible.pu_num}`;
         this.nodes = [];
-        this.icon = 'magnet';
+        this.icon = 'speedometer2';
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+        };
     }
 
     static getCommonSQL() {
@@ -451,7 +482,11 @@ class SioRegister extends BaseNode {
         this.parent_id = row.PU_KOD_POINT_PU;
         this.title = `${this.visible.ini_kodinterval} / ${this.visible.ini_kod_directen}`;
         this.nodes = [];
-        this.icon = 'tachometer';
+        // this.icon = 'toggles';
+        this.icon = 'menu-button-wide-fill';
+        this.refs = {
+            'Лог': `/siotransacts.html?sio=${this.id}`,
+        };
     }
 
     static getCommonSQL() {

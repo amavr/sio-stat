@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/links.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Поиск СИО узлов</title>
+</head>
+
+<body
+    style="padding: 12px; font-size: 9pt; background-color: #fff; font-family: 'Segoe UI', sans-serif;">
+    <div id="app">
+        <span style="font-size: 28px;font-weight: normal;color: #000;">Транзакции в логе</span>
+
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
+
+        <div style="margin: 21px 20px; ">
+            <table style="font-size: 12pt;">
+                <tr v-for="(row) in rows" class="prop">
+                    <td>{{row.LABEL}}</td>
+                    <td><a v-bind:href="'/onelog.html?id=' + row.TRAN_ID">{{row.DT.substr(0, 16).replace('T', ' ')}}</a></td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        const EVENT_FIND = 'event-find';
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                error: null,
+                rows: [],
+            },
+            created() {
+                console.log('Here!');
+                try {
+                    const pair = location.href.split('?')[1].split('&')[0].split('=');
+                    const key_name = pair[0].toLowerCase();
+                    const key_val = pair[1];
+                    // document.title = this.id;
+                    this.loadInfo(key_val);
+                } catch (ex) {
+                    this.error = ex.message;
+                }
+            },
+            methods: {
+                showModal: function (doShow) {
+                    if (doShow) {
+                        document.querySelector('#myModal').style.display = 'block';
+                    } else {
+                        document.querySelector('#myModal').style.display = 'none';
+                    }
+                },
+                loadInfo: async function (key) {
+                    let rows = [];
+                    this.waiting = true;
+                    try {
+                        console.log('finding...' + key);
+
+                        let res = await fetch(`/api/v1/links/log/${key}`);
+                        rows = await res.json();
+                        this.rows = rows;
+
+                        if (rows.length > 0) {
+                            this.rows = rows;
+                            // const r = rows[0];
+                            // window.open(`/onelog.html?id=${r.TRAN_ID}`, r.TRAN_ID,
+                            //     "menubar=off,toolbar=off,location=off");
+                        } else {
+                            this.error = 'В логе не найдено';
+                        }
+                        console.log(rows);
+
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                    return rows;
+                },
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelector('#btn-close-tran').addEventListener('click', function () {
+                document.querySelector('#myModal').style.display = 'none';
+            });
+        });
+    </script>
+
+</body>
+
+</html>

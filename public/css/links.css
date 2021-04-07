@@ -1,5 +1,5 @@
 body {
-    font-family: "Segoe UI","Helvetica Neue",Arial,sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 12pt;
     background-color: #f5f5f5;
 }
@@ -31,6 +31,10 @@ h1 {
 
 td {
     padding: 4px 8px;
+}
+
+tr.nowrap > td {
+    white-space: nowrap;
 }
 
 
@@ -78,7 +82,7 @@ div.props {
 }
 
 
-summary>span{
+summary>span {
     padding-left: 8px;
 }
 
@@ -91,22 +95,27 @@ table.props {
     margin-bottom: 10px;
 }
 
-div.ise>table.props{
+table.props td {
+    border-spacing: 0;
+    margin-bottom: 10px;
+}
+
+div.ise>table.props {
     border-radius: 4px;
     padding: 4px;
     color: #fff;
     margin: 2px 0;
 }
 
-div.ise>table.FF{
+div.ise>table.FF {
     background-color: #009f4d;
 }
 
-div.ise>table.FP{
+div.ise>table.FP {
     background-color: #0077c8;
 }
 
-div.ise>table.CH{
+div.ise>table.CH {
     background-color: #a51890;
 }
 
@@ -147,11 +156,11 @@ details.main>summary::-webkit-details-marker {
     display: none;
 }
 
-details.problems{
+details.problems {
     font-family: "Open Sans Condensed";
 }
 
-details.problems > summary{
+details.problems>summary {
     margin: 0;
 }
 
@@ -159,18 +168,18 @@ div.problems {
     background-color: #fff;
 }
 
-div.problems table{
+div.problems table {
     font-family: "Open Sans Condensed";
     color: #e00;
 }
 
-.fa{
+.bi {
     border-radius: 4px;
     padding: 4px;
     color: #fff;
     background-color: #009f4d;
 }
 
-details.bad>summary>i.fa{
+details.bad>summary>i.bi {
     background-color: #fe5000;
 }
