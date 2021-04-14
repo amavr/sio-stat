@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="css/loader-default.css">
+
+    <script src="js/utils.js"></script>
+    <script src="js/jquery-3.5.1.slim.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0/build/global/luxon.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <!-- <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script> -->
+
+    <script async="false" src="js/ajax.js"></script>
+    <title>Анализ лога</title>
+
+
+    <style>
+        summary {
+            display: list-item;
+            padding: 8px;
+            margin-bottom: 2px;
+            font-family: Montserrat;
+            cursor: pointer;
+        }
+
+        summary.final {
+            display: block;
+        }
+
+        .shifted {
+            margin-left: 12px;
+            border-left: 1px dashed #bbb;
+            padding-left: 24px;
+        }
+
+        div.props {
+            border: 1px solid #bbb;
+            padding: 8px;
+            margin-bottom: 2px;
+        }
+
+        summary span {
+            padding-right: 4px;
+        }
+
+        summary span.bold {
+            font-weight: bold;
+        }
+
+        tr.prop td:first-of-type {
+            padding-right: 12px;
+            text-align: right;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="app" class="container">
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
+
+        <h1>Анализ лога</h1>
+        <div class="row" style="margin-bottom: 24px;">
+            <textarea id="log-lines" style="width: 100%; min-height: 100px; font-family: monospace;">{{text}}</textarea>
+        </div>
+        <button id="btn-analyze" class="btn btn-primary" v-on:click="parseText($event)">Анализировать</button>
+        <!-- <div id="chart" style="margin-top: 24px;width: 900px; height: 500px;"></div> -->
+        <section style="margin-top: 24px;">
+            <tree :nodes="nodes"></tree>
+        </section>
+    </div>
+
+
+    <script>
+        Vue.component('tab', {
+            template: `
+            <table class="props">
+                <tr v-for="(val, name, index) in obj" v-if="name !== 'nodes'" class="prop">
+                    <td>{{name}}:</td>
+                    <td>{{val}}</td>
+                </tr>
+            </table>
+            `,
+            props: ['obj'],
+            methods: {}
+        });
+
+        Vue.component('tree', {
+            template: `
+            <div>
+                <details v-for="(item, index) in nodes" :open="item.open">
+                    <summary v-bind:class="item.nodes.length === 0 ? 'final' : ''"><span class="bold">{{item.dur}}</span><span class="note">{{item.proc}} ({{item.key}})</span></summary>
+                    <div class="shifted">
+                        <tree :nodes="item.nodes"></tree>
+                    </div>
+                </details>
+            </div>
+            `,
+            props: ['nodes'],
+            methods: {}
+        });
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                error: null,
+                text: '',
+                nodes: [],
+                cur: {
+                    // id: null,
+                    // parent_id: null,
+                    parent: null,
+                    key: null,
+                    beg: null,
+                    end: null,
+                    proc: null,
+                    nodes: []
+                }
+            },
+            created() {
+                console.log('Here!');
+                // google.charts.load('current', {
+                //     'packages': ['treemap']
+                // });
+                this.loadText();
+            },
+            mounted: function () {},
+            methods: {
+                showModal: function (doShow) {
+                    if (doShow) {
+                        document.querySelector('#myModal').style.display = 'block';
+                    } else {
+                        document.querySelector('#myModal').style.display = 'none';
+                    }
+                },
+                loadText: async function (sioKey) {
+                    this.waiting = true;
+                    try {
+                        const res = await fetch(`/api/v1/test`);
+                        if (res.status === 500) {
+                            const answer = await res.json();
+                            this.error = `Информация по этому ID недоступна: \r\n${answer.msg}`;
+                        } else {
+                            const data = await res.json();
+                            this.text = data.text;
+                        }
+                        // console.log(this.items);
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                },
+                parseText: function (e) {
+                    console.log('To parse');
+                    const text = document.querySelector('#log-lines').value;
+                    const lines = text.match(/[^\r\n]+/g).map(line => line.trim());
+                    this.parseLog(lines);
+                    this.nodes = this.convert(this.cur).nodes;
+                    // this.drawChart();
+                },
+                convert: function (node) {
+                    const x = {
+                        // id: node.id,
+                        // parent_id: node.parent_id,
+                        key: node.key,
+                        beg: node.beg,
+                        end: node.end,
+                        dur: node.dur,
+                        proc: node.proc,
+                        nodes: node.nodes.map((n) => {
+                            const converted = this.convert(n);
+                            return converted;
+                        })
+                    }
+                    return x;
+                },
+                toChart: function (plain, node) {
+                    plain.push([node.id, node.parent_id, node.dur * 1000]);
+                    for (const x of node.nodes) {
+                        this.toChart(plain, x);
+                    }
+                },
+                drawChart: function () {
+                    const a = [
+                        ['Proc', 'Parent', 'Duration']
+                    ];
+                    for (const x of this.nodes) {
+                        this.toChart(a, x);
+                    }
+                    const data = google.visualization.arrayToDataTable(a);
+                    const tree = new google.visualization.TreeMap(document.getElementById('chart'));
+                    tree.draw(data, {
+                        minColor: '#f00',
+                        midColor: '#ddd',
+                        maxColor: '#0d0',
+                        headerHeight: 15,
+                        fontColor: 'black',
+                        showScale: true
+                    });
+                },
+                uuidv4: function () {
+                    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                        var r = Math.random() * 16 | 0,
+                            v = c == 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                },
+                open: function (node) {
+                    const xnode = {
+                        // id: this.uuidv4(),
+                        // parent_id: this.cur.id,
+                        parent: this.cur,
+                        key: node.key,
+                        beg: node.beg,
+                        end: null,
+                        proc: node.proc,
+                        nodes: []
+                    }
+                    this.cur.nodes.push(xnode);
+                    this.cur = xnode;
+
+                },
+
+                close: function (node) {
+                    if (this.cur.key === node.key && this.cur.proc === node.proc) {
+                        this.cur.end = node.end;
+                        // this.cur.dur = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format((Date.parse(node.end) - Date.parse(this.cur.beg)) / 1000);
+                        this.cur.dur = `${Date.parse(node.end) - Date.parse(this.cur.beg)} msec`;
+                    }
+                    this.cur = this.cur.parent;
+                },
+
+                parseLog: function (lines) {
+                    lines.forEach(line => {
+                        const fields = line.split('\t');
+                        const proc = fields[1].split('\.');
+                        const time = fields[0];
+                        const node = {
+                            proc: proc[0],
+                            key: fields[2].substr(26)
+                        };
+                        if (proc[1].toLowerCase() === 'end') {
+                            node.end = time;
+                            this.close(node);
+                        } else {
+                            node.beg = time;
+                            this.open(node);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

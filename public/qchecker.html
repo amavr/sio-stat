@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/links.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <title>Проверка карантина</title>
+</head>
+
+<body style="padding: 24px;">
+
+    <div id="app">
+
+        <h1>Проверка карантина</h1>
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+        <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
+
+        <div class="container">
+            <form>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="ИНН абонента" aria-label="ИНН абонента"
+                        aria-describedby="btnINN">
+                    <button v-on:click="find($event, 'ABON_INN', 'ABON_KODP')" class="btn btn-primary" type="button"
+                        id="btnINN">Искать</button>
+                </div>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="№ договора" aria-label="№ договора"
+                        aria-describedby="btnDogNum">
+                    <button v-on:click="find($event, 'DG_NDOG', 'DG_KOD_DOG')" class="btn btn-primary" type="button"
+                        id="btnDogNum">Искать</button>
+                </div>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="№ объекта" aria-label="№ объекта"
+                        aria-describedby="btnObjNum">
+                    <button v-on:click="find($event, 'NOBJ_NUM', 'NOBJ_KOD_NUMOBJ')" class="btn btn-primary"
+                        type="button" id="btnObjNum">Искать</button>
+                </div>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="№ счетчика" aria-label="№ счетчика"
+                        aria-describedby="btnPUNum">
+                    <button v-on:click="find($event, 'PU_NUM', 'PU_KOD_POINT_PU')" class="btn btn-primary" type="button"
+                        id="btnPUNum">Искать</button>
+                </div>
+            </form>
+            <div v-show="keys.length > 0">
+                <h6>Найдено узлов: {{keys.length}}</h6>
+                <ul class="list-group">
+                    <li v-for="(key) in keys" :key="key" class="list-group-item"><a
+                            v-bind:href="'/siotree.html?sio=' + key" v-bind:target="key">{{key}}</a></li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const EVENT_FIND = 'event-find';
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                waiting: false,
+                error: null,
+                keys: [],
+                name: '',
+                value: '',
+            },
+            created() {
+                console.log('Here!');
+            },
+            mounted: function () {
+                this.$root.$on(EVENT_FIND, this.find);
+            },
+            methods: {
+                showModal: function (doShow) {
+                    if (doShow) {
+                        document.querySelector('#myModal').style.display = 'block';
+                    } else {
+                        document.querySelector('#myModal').style.display = 'none';
+                    }
+                },
+                find: async function (ev, field_key, field_out) {
+                    this.error = null;
+                    this.waiting = true;
+                    try {
+                        const val = ev.srcElement.parentNode.querySelector('input').value.trim();
+                        if (val === null || val.length === 0) {
+                            alert('Значение для поиска не указано');
+                        } else {
+                            const res = await fetch(`/api/v1/links/find/${field_key}/${val}/${field_out}`);
+                            if (res.status === 500) {
+                                const answer = await res.json();
+                                this.error = answer.msg;
+                                this.keys = [];
+                            } else {
+                                this.keys = await res.json();
+                            }
+                        }
+                    } catch (ex) {
+                        this.error = ex.message;
+                    } finally {
+                        this.waiting = false;
+                    }
+                },
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelector('#btn-close-tran').addEventListener('click', function () {
+                document.querySelector('#myModal').style.display = 'none';
+            });
+        });
+    </script>
+
+</body>
+
+</html>

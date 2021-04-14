@@ -1,11 +1,94 @@
-<div class="w3-main" id="main">
-    <div class="w3-container" style="margin-top: 40px; margin: 100px auto; text-align: center;">
-        <a href="/errors.html">Просмотр ошибок в логе</a>
-        <br><br>
-        <a href="/sioenter.html">Поиск СИО объектов</a>
-        <br><br>
-        {{!-- <a href="/handle-stat.html">Статистика обработки</a>
-        <br><br> --}}
-        <a href="/forecast.html">Прогноз завершения</a>
+<style>
+    .card {
+        width: 18rem;
+        margin-top: 20px;
+
+    }
+
+    .card img {
+        filter: brightness(64%)
+    }
+
+    .card .card-img-overlay {
+        color: #fff;
+        text-shadow: 1px 1px 2px #4c4c4c, 0 0 1em #000000;
+    }
+
+    .card .c-body {
+        font-size: 17pt;
+    }
+
+    .shadowed {
+        box-shadow: 0px 8px 12px 2px rgba(0, 0, 0, 0.2),
+            0px 4px 5px 0px rgba(0, 0, 0, 0.14),
+            0px 1px 10px 0px rgba(0, 0, 0, 0.12);
+        transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .shadowed:hover {
+        box-shadow: 0px 11px 15px -7px rgba(0, 0, 0, 0.2), 0px 24px 38px 3px rgba(0, 0, 0, 0.14), 0px 9px 46px 8px rgba(0, 0, 0, 0.12);
+    }
+</style>
+
+<div id="main">
+    <div class="container" style="margin: 40px auto; text-align: center;">
+        <div class="row">
+            <div class="col-sm">
+                <div class="card shadowed">
+                    <img src="img/mdmlog.png" class="card-img" alt="...">
+                    <a href="/mdmlog.html" class="list-inline">
+                        <div class="card-img-overlay">
+                            <span class="c-body">
+                                Журнал обработки входящих сообщений
+                            </span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-sm">
+                <div class="card shadowed">
+                    <img src="img/sioenter.png" class="card-img" alt="...">
+                    <a href="/sioenter.html" class="list-inline">
+                    <div class="card-img-overlay">
+                        <span class="c-body">Поиск СИО объектов</span>
+                    </div>
+                    </a>
+                </div>
+            </div>
+
+            {{!-- <div class="col-sm">
+                <div class="card shadowed">
+                    <img src="img/empty.png" class="card-img" alt="...">
+                    <a href="/qchecker.html" class="list-inline">
+                        <div class="card-img-overlay">
+                            <span class="c-body">Проверка поступивших в карантин данных</span>
+                        </div>
+                    </a>
+                </div>
+            </div> --}}
+
+            <div class="col-sm">
+                <div class="card shadowed">
+                    <img src="img/logtimes.png" class="card-img" alt="...">
+                    <a href="/logtimes.html" class="list-inline">
+                        <div class="card-img-overlay">
+                            <span class="c-body">Анализ времени выполнения</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-sm">
+                <div class="card shadowed">
+                    <img src="img/forecast.png" class="card-img" alt="...">
+                    <a href="/forecast.html" class="list-inline">
+                        <div class="card-img-overlay">
+                            <span class="c-body">Прогноз завершения обработки</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

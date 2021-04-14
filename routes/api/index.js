@@ -347,8 +347,8 @@ router.get('/v2/links/info/:key', async (req, res) => {
         if (chain_rows.length > 0) {
 
             if (chain_rows[0].IES.startsWith('0')) {
-                const parts = chain_rows[0].IES.split(',');
-                throw new Error(parts[1]);
+                // const parts = chain_rows[0].IES.split(',');
+                throw new Error(chain_rows[0].IES.substr(2));
             }
 
             let parent = null;
@@ -600,13 +600,30 @@ router.get('/v1/links/volumes/:field/:key', async (req, res) => {
     }
 });
 
+router.get('/v1/links/check/', async (req, res) => {
+    try {
+        const binds = {};
+
+        let rows = await db.selectSqlName('links.sio-ise-compare', binds);
+        res.send(rows);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
 router.get('/v1/test', async (req, res) => {
     try {
+        const txt = await FileHelper.readText('D:/temp/test-log.txt');
+
+        res.send({text: txt});
         // throw new Error('test error');
-        const binds = { key: 'http://trinidata.ru/sigma/Системаио_995230_ТПО_ЮЛ_2215933653' };
-        let sql = 'SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))';
-        let rows = await db.select(sql, binds);
-        res.json(rows);
+
+        // const binds = { key: 'http://trinidata.ru/sigma/Системаио_995230_ТПО_ЮЛ_2215933653' };
+        // let sql = 'SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))';
+        // let rows = await db.select(sql, binds);
+        // res.json(rows);
     }
     catch (ex) {
         res.status(500).json({ msg: ex.message }).end();

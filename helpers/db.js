@@ -70,6 +70,8 @@ class OracleDB {
                 sql = sql.replace(key, val);
             }
         }
+        log.debug(sql);
+        log.debug(JSON.stringify(binds));
         return await this.select(sql, binds);
     }
 

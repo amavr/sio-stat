@@ -109,7 +109,7 @@
                                         style="background-color: #fff; margin-top: 10px;">
                                         <thead>
                                             <tr>
-                                                <th scope="col">ID шкалы</th>
+                                                <th scope="col">Счетчик</th>
                                                 <th scope="col">Энергия</th>
                                                 <th scope="col">Метод</th>
                                                 <th scope="col">Вид</th>
@@ -124,11 +124,13 @@
                                                 <th scope="col">Потр</th>
                                                 <th scope="col">Расч</th>
                                                 <th scope="col">Проч</th>
+                                                <th scope="col">ID счетчика</th>
+                                                <th scope="col">ID шкалы</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             <tr v-for="(row, index) in atp_val.ini" class="prop nowrap">
-                                                <td>{{row.INI_IES}}</td>
+                                                <td>{{row.PU_NUM}}</td>
                                                 <td>{{row.ENRG}}</td>
                                                 <td>{{row.MTHD}}</td>
                                                 <td>{{row.KIND}}</td>
@@ -144,6 +146,8 @@
                                                 <td>{{row.INI_VOL_POTERI}}</td>
                                                 <td>{{row.INI_VOL_RAS}}</td>
                                                 <td>{{row.INI_VOL_OTHER}}</td>
+                                                <td>{{row.PU_IES}}</td>
+                                                <td>{{row.INI_IES}}</td>
                                             </tr>
                                         </tbody>
                                     </table>
