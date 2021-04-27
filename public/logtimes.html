@@ -7,12 +7,15 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="css/loader-default.css">
+        <link rel="stylesheet" href="css/loader-default.css">
+        <link rel="stylesheet" href="css/modal.css">
+        <link rel="stylesheet" href="css/floatbtn.css">
 
     <script src="js/utils.js"></script>
     <script src="js/jquery-3.5.1.slim.min.js"></script>
     <script src="js/popper.min.js"></script>
     <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
     <script src="js/bootstrap.min.js"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/luxon@1.26.0/build/global/luxon.min.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
@@ -64,10 +67,60 @@
 </head>
 
 <body>
+    <!-- The Modal -->
+    <div id="about" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <div style="font-size: 28px;">
+                <span>Краткое описание</span>
+                <span id="btn-close-about" class="close">&times;</span>
+            </div>
+            <div class="scrolled">
+                <h4>Назначение</h4>
+                <p>Поиск длительных операций в алгоритме обработке</p>
+                <h4>Принцип</h4>
+                <p>В поле ввода вставляются данные, просто copy/paste из результатов запроса к таблице лога
+                    <pre>SELECT DT, SOURCE, ERROR FROM SIO_MSG_ERRORS WHERE tag = '<b>MY-ID</b>' ORDER BY dt;</pre></p>
+                    <p>Нажимается кнопка "Анализировать"</p>
+                    <p>Под кнопкой появляется информация в виде дерева с указанием времени выполнения</p>
+                <h4>Пример добавления метрик в лог</h4>
+                <pre>
+PACKAGE BODY MY_PACK AS
+
+PROCEDURE MARK(SRC VARCHAR2, MSG VARCHAR2)
+IS
+BEGIN
+-- убрать комментарий перед RETURN, если нужно выключить запись метрик
+-- RETURN; 
+    INSERT INTO SIO_MSG_ERRORS(TAG, SOURCE, ERROR) VALUES('MY-ID', SRC, MSG);
+    COMMIT;
+END;
+
+PROCEDURE MY_PROC(
+    PARAM1 VARCHAR2,
+    PARAM2 NUMBER
+)
+IS
+BEGIN
+    MARK('MY_PROC.<b>BEG</b>', PARAM1);
+
+    -- КАКОЙ-ТО КОД ...
+
+    MARK('MY_PROC.<b>END</b>', PARAM1);
+END;
+
+END;                
+                </pre>
+            </div>
+        </div>
+
+    </div>
+
     <div id="app" class="container">
         <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
         <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
 
+        <div ></div>
         <h1>Анализ лога</h1>
         <div class="row" style="margin-bottom: 24px;">
             <textarea id="log-lines" style="width: 100%; min-height: 100px; font-family: monospace;">{{text}}</textarea>
@@ -78,6 +131,10 @@
             <tree :nodes="nodes"></tree>
         </section>
     </div>
+
+    <a id="btn-show-about" href="#" class="float">
+        <i class="bi bi-info-circle-fill btn-float"></i>
+    </a>    
 
 
     <script>
@@ -247,7 +304,8 @@
                         const time = fields[0];
                         const node = {
                             proc: proc[0],
-                            key: fields[2].substr(26)
+                            key: fields[2].startsWith('http://trinidata') ? fields[2].substr(
+                                26) : fields[2]
                         };
                         if (proc[1].toLowerCase() === 'end') {
                             node.end = time;
@@ -259,6 +317,18 @@
                     });
                 }
             }
+        });
+
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelector('#btn-show-about').addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector('#about').style.display = 'block';
+                return false;
+            });
+            document.querySelector('#btn-close-about').addEventListener('click', function () {
+                document.querySelector('#about').style.display = 'none';
+            });
         });
     </script>
 

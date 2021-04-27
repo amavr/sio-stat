@@ -113,6 +113,10 @@ class FileHelper {
         });
     }
 
+    static append(filePath, data) {
+        fsp.appendFile(filePath, data);
+    }
+
     static appendSync(filePath, data) {
         fs.appendFileSync(filePath, data);
     }

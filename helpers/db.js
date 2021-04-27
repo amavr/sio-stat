@@ -6,30 +6,45 @@ const cfg = require('../config/cfg.json');
 
 class OracleDB {
 
-    constructor(){
+    constructor() {
 
         oracledb.extendedMetaData = true;
         oracledb.autoCommit = true;
 
         this.sqls = {};
         this.pool = null;
+        this.refs = {};
 
         this.params = cfg.api.db;
         log.info(this.params.name.toUpperCase());
     }
 
-    setNamedSql(name, sql){
+    setNamedSql(name, sql) {
         this.sqls[name] = sql;
     }
 
-    getSqlByName(name){
+    getSqlByName(name) {
         return this.sqls[name];
     }
 
+    async loadRefs(dbcon) {
+        const sql = 'SELECT KOD_DICT, ID, ID_IES FROM IER_LINK_DATADICTS ORDER BY 1, 2, 3';
+        const res = await dbcon.execute(sql, {}, { outFormat: oracledb.OBJECT });
+        for(const row of res.rows){
+            if(this.refs[row.KOD_DICT] === undefined){
+                this.refs[row.KOD_DICT] = {};
+            }
+            this.refs[row.KOD_DICT][row.ID_IES] = row.ID;
+        }
+    }
 
     async getConnection() {
-        if(this.pool === null){
+        if (this.pool === null) {
             this.pool = await oracledb.createPool(this.params);
+            const dbcon = await this.pool.getConnection();
+            await this.loadRefs(dbcon);
+            log.info('IER_LINK_DATADICTS loaded');
+            return dbcon;
         }
         return await this.pool.getConnection();
     }
@@ -53,25 +68,37 @@ class OracleDB {
         await dbcon.rollback();
     }
 
-    async select(sql, binds) {
+    async execute(sql, binds) {
         const dbcon = await this.getConnection();
-        if(binds === undefined){
+        if (binds === undefined) {
             binds = {};
         }
-        const result = await dbcon.execute(sql, binds, {outFormat: oracledb.OBJECT});
+        const result = await dbcon.execute(sql, binds, { outFormat: oracledb.OBJECT });
+        await this.close(dbcon);
+        return result;
+    }
+
+    async select(sql, binds) {
+        const dbcon = await this.getConnection();
+        if (binds === undefined) {
+            binds = {};
+        }
+        const result = await dbcon.execute(sql, binds, { outFormat: oracledb.OBJECT });
         await this.close(dbcon);
         return result.rows;
     }
 
     async selectSqlName(sqlName, binds, replacings) {
         let sql = this.getSqlByName(sqlName);
-        if(replacings){
-            for(const [key, val] of Object.entries(replacings)){
+        if (replacings) {
+            for (const [key, val] of Object.entries(replacings)) {
                 sql = sql.replace(key, val);
             }
         }
         log.debug(sql);
-        log.debug(JSON.stringify(binds));
+        if(binds){
+            log.debug(JSON.stringify(binds));
+        }
         return await this.select(sql, binds);
     }
 

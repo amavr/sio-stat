@@ -3,7 +3,7 @@ WITH
         SELECT IDS, IDS_INF, ID_IES FROM VI_LINKS_IES_GRP
      ),
      ISE AS (
-        SELECT * FROM VI_ISE
+        SELECT /*+ RULE */ * FROM VI_ISE
      ),
      TAB AS (
         SELECT 

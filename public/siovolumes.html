@@ -200,16 +200,6 @@
                     try {
                         const resp = await fetch(`/api/v1/links/volumes/${name}/${val}`);
                         this.volumes = await resp.json();
-
-
-                        // const res = await fetch(`/api/v1/links/16/${name}/${val}`);
-                        // if (res.status === 500) {
-                        //     const answer = await res.json();
-                        //     this.error = answer.msg;
-                        //     this.attp_rows = [];
-                        // } else {
-                        //     this.attp_rows = await res.json();
-                        // }
                     } catch (ex) {
                         this.error = ex.message;
                     } finally {

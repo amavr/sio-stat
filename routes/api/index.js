@@ -40,6 +40,7 @@ const {
     IsePU,
     IseReg
 } = require('../../models/sio_tree');
+const { localsAsTemplateData } = require('hbs');
 
 const http_codes = [204, 301, 304, 400, 401, 403, 404, 500, 503];
 
@@ -51,7 +52,32 @@ setImmediate(async () => {
         const sql = await FileHelper.read(path.join(dir, file));
         db.setNamedSql(name, sql);
     }
+
+    // log.info('start calc rows')
+    // const tabs = [{name: 'SIO_MSG6_1', key: 'NOBJ_KOD_NUMOBJ'}, {name: 'SIO_MSG13_1', key: 'PACK_IES'}, {name: 'SIO_MSG16_1', key: 'NOBJ_KOD_NUMOBJ'}];
+    // for(const tab of tabs){
+    //     const count = await loadTab(tab.name, tab.key);
+    //     log.info(`${tab.name}: ${count}`)
+    // }
 });
+
+
+const loadTab = async function(tab, key){
+    const fname = `D:/IE/tmp/${tab}.txt`;
+    // await FileHelper.save(fname, '');
+    let rows = await db.select(`SELECT DISTINCT ${key} FROM ${tab}`);
+    await FileHelper.save(fname, rows.map(row => row[key]).join('\n'));
+    // const lines = [];
+    // for(const row of rows){
+    //     lines.push(row[key]);
+    //     if(lines.length >= 1000){
+    //         await FileHelper.append(fname, lines.join('\r\n'));
+    //         lines.length = 0;
+    //     }
+    // }
+    // await FileHelper.append(fname, lines.join('\r\n'));
+    return rows.length;
+}
 
 const router = express.Router();
 
@@ -71,9 +97,9 @@ setInterval(async () => {
                 count: forecast_data.last.count
             }
         }
-        // const rows = await db.select('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG6_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES6_1)');
+        const rows = await db.select('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG6_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES6_1)');
         // const rows = await db.select('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG13_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES13_1)');
-        const rows = await db.select('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG16_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES16_1)');
+        // const rows = await db.select('SELECT SYSDATE DT, COUNT(1) NUM FROM SIO_MSG16_1 WHERE FILENAME NOT IN (SELECT filename FROM SIO_READY_FILES16_1)');
 
         forecast_data.last.time = moment(rows[0].DT);
         forecast_data.last.count = rows[0].NUM;
@@ -85,6 +111,16 @@ setInterval(async () => {
 
 }, 30000);
 
+router.get('/v1/ping', async (req, res) => {
+    try {
+        const rows = await db.select('select 1 from dual', {});
+        res.send({ success: true });
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
 
 router.post('/v1/auth', async (req, res) => {
     if (req.body.username === 'demo' && req.body.password === 'demo') {
@@ -94,6 +130,29 @@ router.post('/v1/auth', async (req, res) => {
         res.status(404).json({ success: false, msg: 'Неверный логин или пароль' });
     }
 });
+
+router.get('/v1/refs/id/:code/:ies', async (req, res) => {
+    try {
+        const val = db.refs[req.params.code][req.params.ies];
+        res.send({ id: val });
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/refs', async (req, res) => {
+    try {
+        res.send(db.refs);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+
 
 router.get('/v1/sidebar/:user', async (req, res) => {
 
@@ -330,6 +389,10 @@ router.get('/v1/links/dblise', async (req, res) => {
     }
 });
 
+router.get('/v2/links/info/', async (req, res) => {
+    res.status(400).json({msg: 'URL не содежит параметр SIO с идетификатором'})
+});
+
 router.get('/v2/links/info/:key', async (req, res) => {
     try {
         // req.params.key = Buffer.from(req.params.key, 'base64').toString();
@@ -529,8 +592,8 @@ router.get('/v1/links/find/:field/:val/:field_out', async (req, res) => {
             const rows = await db.selectSqlName('links.find_in_msg', { val: req.params.val }, subst);
             res.send(rows.map((row) => Object.entries(row)[0][1].substr(26)));
         }
-        else{
-            res.status(400).json({ msg: `Unknown field ${req.params.field} in route`}).end();
+        else {
+            res.status(400).json({ msg: `Unknown field ${req.params.field} in route` }).end();
         }
     }
     catch (ex) {
@@ -539,14 +602,17 @@ router.get('/v1/links/find/:field/:val/:field_out', async (req, res) => {
     }
 });
 
-router.get('/v1/links/16/:field/:key', async (req, res) => {
+router.get('/v1/links/check/:field/:key', async (req, res) => {
     try {
         const field = req.params.field.toUpperCase();
         const subst = {};
-        subst['#field_val#'] = field;
-        const binds = { key: req.params.key.startsWith('http') ? req.params.key : 'http://trinidata.ru/sigma/' + req.params.key };
+        subst['#FLD#'] = field;
+        const binds = { val: req.params.key };
 
-        const rows = await db.selectSqlName('links.16_attp', binds, subst);
+        await db.execute('DELETE FROM GLB_SIO_NUMS');
+        await db.execute(`INSERT INTO GLB_SIO_NUMS(${field}) VALUES(:VAL)`, binds);
+
+        const rows = await db.selectSqlName('links.sio-ise-compare');
         res.send(rows);
     }
     catch (ex) {
@@ -565,29 +631,29 @@ router.get('/v1/links/volumes/:field/:key', async (req, res) => {
         const answer = {};
 
         let rows = await db.selectSqlName('links.16_attp', binds, subst);
-        for(const row of rows){
-            if(answer[row.YM] === undefined){
+        for (const row of rows) {
+            if (answer[row.YM] === undefined) {
                 answer[row.YM] = {}
             }
-            if(answer[row.YM][row.OBJ_IES] === undefined){
+            if (answer[row.YM][row.OBJ_IES] === undefined) {
                 answer[row.YM][row.OBJ_IES] = {}
             }
-            if(answer[row.YM][row.OBJ_IES][row.ATP_IES] === undefined){
-                answer[row.YM][row.OBJ_IES][row.ATP_IES] = {atp: [], ini: []};
+            if (answer[row.YM][row.OBJ_IES][row.ATP_IES] === undefined) {
+                answer[row.YM][row.OBJ_IES][row.ATP_IES] = { atp: [], ini: [] };
             }
             answer[row.YM][row.OBJ_IES][row.ATP_IES].atp.push(row);
         }
 
         rows = await db.selectSqlName('links.16_ini', binds, subst);
-        for(const row of rows){
-            if(answer[row.YM] === undefined){
+        for (const row of rows) {
+            if (answer[row.YM] === undefined) {
                 answer[row.YM] = {}
             }
-            if(answer[row.YM][row.OBJ_IES] === undefined){
+            if (answer[row.YM][row.OBJ_IES] === undefined) {
                 answer[row.YM][row.OBJ_IES] = {}
             }
-            if(answer[row.YM][row.OBJ_IES][row.ATP_IES] === undefined){
-                answer[row.YM][row.OBJ_IES][row.ATP_IES] = {atp: [], ini: []};
+            if (answer[row.YM][row.OBJ_IES][row.ATP_IES] === undefined) {
+                answer[row.YM][row.OBJ_IES][row.ATP_IES] = { atp: [], ini: [] };
             }
             answer[row.YM][row.OBJ_IES][row.ATP_IES].ini.push(row);
         }
@@ -617,7 +683,7 @@ router.get('/v1/test', async (req, res) => {
     try {
         const txt = await FileHelper.readText('D:/temp/test-log.txt');
 
-        res.send({text: txt});
+        res.send({ text: txt });
         // throw new Error('test error');
 
         // const binds = { key: 'http://trinidata.ru/sigma/Системаио_995230_ТПО_ЮЛ_2215933653' };

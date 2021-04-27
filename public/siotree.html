@@ -7,10 +7,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans+Condensed:wght@300&display=swap">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
-    
+
 
     <link rel="stylesheet" href="css/loader-default.css">
     <link rel="stylesheet" href="css/links.css">
@@ -133,10 +132,10 @@
                 loadChildren: async function (e, item) {
                     this.$root.$emit(EVENT_EXPAND_NODE, e.target, item);
                 },
-                openVolumes: function(e, url){
+                openVolumes: function (e, url) {
                     e.preventDefault();
-                    window.open(url, '_blank', 'height=600,width=1500,menubar=no,location=yes,status=no'); 
-                    return false;                    
+                    window.open(url, '_blank', 'height=600,width=1500,menubar=no,location=yes,status=no');
+                    return false;
                 }
             }
         });
@@ -189,6 +188,10 @@
                             const answer = await res.json();
                             this.error = `Информация по этому ID недоступна: \r\n${answer.msg}`;
                             this.nodes = [];
+                        } else if(res.status === 400) {
+                            const answer = await res.json();
+                            this.error = answer.msg;
+                            this.nodes = [];
                         } else {
                             this.nodes = await res.json();
                             this.page_id = decodeURI(sioKey);
@@ -235,7 +238,11 @@
                     } catch (ex) {
                         this.error = ex.message;
                         node.error = true;
-                        node.audit.push({IDX: null, VAL: item.id, VAL2: ex.message});
+                        node.audit.push({
+                            IDX: null,
+                            VAL: item.id,
+                            VAL2: ex.message
+                        });
                         console.error(ex.message + ' ' + ex.stack);
                     }
                     this.waiting = false;

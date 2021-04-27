@@ -7,7 +7,6 @@ body {
 h1 {
     font-size: 14pt;
     font-family: Montserrat;
-    color: #7b7b7b;
     font-weight: 600;
 }
 
@@ -33,7 +32,7 @@ td {
     padding: 4px 8px;
 }
 
-tr.nowrap > td {
+tr.nowrap>td {
     white-space: nowrap;
 }
 
