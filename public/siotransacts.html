@@ -78,9 +78,9 @@
 
                         if (rows.length > 0) {
                             this.rows = rows;
-                            // const r = rows[0];
-                            // window.open(`/onelog.html?id=${r.TRAN_ID}`, r.TRAN_ID,
-                            //     "menubar=off,toolbar=off,location=off");
+                            const r = rows[0];
+                            window.open(`/onelog.html?id=${r.TRAN_ID}`, r.TRAN_ID,
+                                "menubar=off,toolbar=off,location=yes");
                         } else {
                             this.error = 'В логе не найдено';
                         }

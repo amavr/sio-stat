@@ -1,9 +1,18 @@
 'use strict';
 
+const log4js = require('log4js');
 const adp = require('../helpers/adapter');
 const db = require('../helpers/db');
+const { GlobalISE, GlobISE } = require('./ise_nodes');
+const log = log4js.getLogger('SIO-NODES');
 
-class Glob {
+// NODE STATES
+const NS_GOOD = '#0a0';
+const NS_LOST = '#aaa';
+const NS_MORE = '#00a';
+const NS_DIFF = '#a00';
+
+class GlobSIO {
     static async create(id, objtype) {
         let res = null;
         switch (objtype) {
@@ -21,6 +30,9 @@ class Glob {
                 break;
             case 7:
                 res = await SioPoint.load(id);
+                break;
+            case 8:
+                res = await SioPU.load(id);
                 break;
             case 9:
                 res = await SioPU.load(id);
@@ -43,14 +55,26 @@ class BaseNode {
         this.visible = {};
         this.source = '-';
         this.type = 'BASE';
-        this.equals = false;
-        this.id = '';
-        this.parent_id = '';
-        this.title = '';
-        this.nodes = [];
-        this.ise_nodes = [];
-        this.audit = [];
         this.icon = 'id-card-o';
+        // искомый узел в иерархии для выделения в интерфейсе
+        this.equals = false;
+        // ключ SIO (без префикса)
+        this.id = '';
+        // ключ SIO (без префикса) вышестоящего узла
+        this.parent_id = '';
+        // видимое наименование узла
+        this.title = '';
+        // иерархия подчиненых узлов
+        this.nodes = [];
+        // словарь подчиненных узлов для поиска по ключу SIO (без префикса)
+        this.items = {};
+        // для подгружаемой информации из интерфейса (здесь не заполняется)
+        this.ise_nodes = [];
+        // информация о найденных проблемах
+        this.audit = { state: 'NS_GOOD' };
+        // кол-во пар (ссылок)
+        this.links = 0;
+        // ссылки на вспомогательные страницы (лог, пары и пр.)
         this.refs = {};
     }
 
@@ -58,9 +82,9 @@ class BaseNode {
     updateTitle() {
     }
 
-    static validateSioId(id) {
-        return typeof id === 'string' ? adp.deletePfx(id) : id;
-    }
+    // static validateSioId(id) {
+    //     return typeof id === 'string' ? adp.deletePfx(id) : id;
+    // }
 
     static getCommonSQL() {
         return 'select 0 as dummy from dual';
@@ -70,7 +94,7 @@ class BaseNode {
         return 'select 0 as dummy from dual';
     }
 
-    static getChildrenSQL() {
+    static getChildrenSioSQL() {
         return 'select 0 as dummy from dual';
     }
 
@@ -80,76 +104,79 @@ class BaseNode {
         const rows = await db.select(sql, { id: adp.addPfx(id) });
 
         if (rows.length === 0) {
-            throw new Error(`${this.name} NOT FOUND IN DATABASE WIHT KEY ${id}`);
+            const error = new Error(`${this.name} NOT FOUND IN DATABASE WIHT KEY ${id} ${sql}`);
+            error.code = 404;
+            throw error;
         }
         if (rows.length > 1) {
-            throw new Error(`MORE ONE ${this.type} FOUND WITH KEY ${id}`);
+            throw new Error(`MORE ONE ${this.name} FOUND WITH KEY ${id} \n${sql}`);
         }
 
         return this.create(rows[0]);
     }
 
-    async loadChildren() {
-        const sql = this.getChildrenSQL();
+    async loadSioChildren() {
+        const sql = this.getChildrenSioSQL();
+        if (sql !== null) {
+            this.nodes = (await db.select(sql, { id: adp.addPfx(this.id) }))
+                .map(row => this.createSioChild(row))
+                .filter(child => child !== null);
+            this.nodes.forEach(node => {
+                this.items[node.id] = node;
+            });
+        }
+        else {
+            this.nodes = [];
+        }
+        log.debug(`${this.type} has ${this.nodes.length}`);
+    }
+
+    async loadIseChildren() {
+        const sql = this.getChildrenIseSQL();
+        console.log(sql);
         if (sql !== null) {
             const rows = await db.select(sql, { id: adp.addPfx(this.id) });
-            const nodes = [];
-
-            if (rows.length > 0) {
-
-                const children_audit = await this.checkChildren();
-
-                for (const row of rows) {
-                    const child = this.createChild(row);
-                    if (child) {
-                        nodes.push(child);
-                        if (child.id && children_audit[child.id]) {
-                            child.audit = children_audit[child.id];
-                            delete children_audit[child.id];
-                        }
-                    }
-                }
-                if (Object.keys(children_audit).length > 0) {
-                    for (const [key, val] of Object.entries(children_audit)) {
-                        this.audit = [...this.audit, ...val];
-                    }
-                }
-            }
-            this.nodes = nodes;
+            rows.forEach(row => {
+                this.setIseChildProps(row);
+            });
         }
     }
 
-    async checkChildren() {
-        const sql = `SELECT IDX, VAL, VAL2 FROM TABLE(DBG_TOOLS.CHILD_CHECKER(:key)) WHERE VAL2 IS NOT NULL ORDER BY VAL`;
-        const rows = await db.select(sql, { key: this.id });
-
-        const sio_keys = {};
-
-        /// 2. query all nodes from chain by id
-        if (rows.length > 0) {
-
-            for (const row of rows) {
-                const key = row.VAL === null ? 'NULL' : row.VAL;
-                if (sio_keys[key] === undefined) {
-                    sio_keys[key] = [];
-                }
-                sio_keys[key].push({ IDX: row.IDX, VAL: key, VAL2: row.VAL2 });
-            }
-        }
-        return sio_keys;
+    async loadChildren() {
+        await this.loadSioChildren();
+        await this.loadIseChildren();
+        delete this.items;
     }
 
     static create(row) {
         return new BaseNode(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return null;
+    }
+
+    setIseChildProps(row) {
+        const node = this.items[adp.deletePfx(row.IES)];
+        // если проблема уже найдена, то ее поиск не нужен
+        if (node.audit.state != 'NS_GOOD') return;
+
+        if (row.ID === null) {
+            node.audit.state = 'NS_LOST';
+        }
+        else if (node.parent_id != row.P_IES) {
+            node.audit.state = 'NS_DIFF';
+        }
+        else {
+            node.links++;
+            node.audit.state = node.links > 1 ? 'NS_MORE' : 'NS_GOOD';
+        }
     }
 
     replaceChild(node) {
         for (const i in this.nodes) {
             if (this.nodes[i].id == node.id) {
+                node.audit = this.nodes[i].audit;
                 this.nodes[i] = node;
                 break;
             }
@@ -197,24 +224,42 @@ class SioAbon extends BaseNode {
     }
 
     static getCommonSQL() {
-        return "SELECT ABON_KODP, ABON_NAME, ABON_INN, ABON_ADRR_STR, DT FROM SIO_ABON WHERE 1=1";
+        return "SELECT /*+ RULE*/ ABON_KODP, ABON_NAME, ABON_INN, ABON_ADRR_STR, DT FROM SIO_ABON WHERE 1=1";
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + " AND ABON_KODP = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return SioDog.getCommonSQL() + " AND ABON_KODP = :id";
+    }
+
+    getChildrenIseSQL() {
+        return "SELECT /*+ RULE*/ ds.DG_KOD_DOG ies, ld.ID, d.KODP p_id,  lp.ID_IES p_ies " +
+            // дочерние узлы СИО
+            "FROM SIO_DOG ds " +
+            // дочерние пары
+            "LEFT OUTER JOIN IER_LINK_OBJECTS ld ON (ld.ID_IES = ds.DG_KOD_DOG) " +
+            // дочерние узлы ИСЭ
+            "LEFT OUTER JOIN KR_DOGOVOR d ON (d.KOD_DOG = ld.ID) " +
+            // вышестоящие пары (ИСЭ)
+            "LEFT OUTER JOIN IER_LINK_OBJECTS lp ON (lp.KOD_OBJTYPE = 2 AND lp.ID = d.KODP) " +
+            "WHERE ds.ABON_KODP = :id";
     }
 
     static create(row) {
         return new SioAbon(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return new SioDog(row);
     }
+
+    // setIseChildProps(row) {
+    //     super.setIseChildProps(row);
+    //     return new SioDog(row);
+    // }
 }
 
 class SioDog extends BaseNode {
@@ -241,22 +286,35 @@ class SioDog extends BaseNode {
     }
 
     static getCommonSQL() {
-        return "SELECT DG_KOD_DOG, ABON_KODP, DG_NDOG, DG_KIND, DG_DAT_NUMDOG, DG_DAT_FIN FROM SIO_DOG WHERE 1=1";
+        return "SELECT /*+ RULE*/ DG_KOD_DOG, ABON_KODP, DG_NDOG, DG_KIND, DG_DAT_NUMDOG, DG_DAT_FIN FROM SIO_DOG WHERE 1=1";
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + " AND DG_KOD_DOG = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return SioObj.getCommonSQL() + " AND DG_KOD_DOG = :id";
+    }
+
+    getChildrenIseSQL() {
+        return "SELECT /*+ RULE*/ s.NOBJ_KOD_NUMOBJ ies, ls.ID, i.KOD_DOG p_id,  li.ID_IES p_ies " +
+            // дочерние узлы СИО
+            "FROM SIO_OBJ s " +
+            // дочерние пары
+            "LEFT OUTER JOIN IER_LINK_OBJECTS ls ON (ls.ID_IES = s.NOBJ_KOD_NUMOBJ) " +
+            // дочерние узлы ИСЭ
+            "LEFT OUTER JOIN KR_NUMOBJ i ON (i.KOD_NUMOBJ = ls.ID) " +
+            // вышестоящие пары (ИСЭ)
+            "LEFT OUTER JOIN IER_LINK_OBJECTS li ON (li.KOD_OBJTYPE = 1 AND li.ID = i.KOD_DOG) " +
+            "WHERE s.DG_KOD_DOG = :id";
     }
 
     static create(row) {
         return new SioDog(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return new SioObj(row);
     }
 }
@@ -288,7 +346,7 @@ class SioObj extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT NOBJ_KOD_NUMOBJ, DG_KOD_DOG, NOBJ_NUM, NOBJ_NAME, NOBJ_ADR_STR, NOBJ_DAT_CREATE, ' +
+        return 'SELECT /*+ RULE*/ NOBJ_KOD_NUMOBJ, DG_KOD_DOG, NOBJ_NUM, NOBJ_NAME, NOBJ_ADR_STR, NOBJ_DAT_CREATE, ' +
             'IEG_HANDLE_MDM.COMBINE_ADDR(NOBJ_ADR_REGION, NOBJ_ADR_DISTRICT, NOBJ_ADR_PLACE) AS NOBJ_ADDR_IES ' +
             'FROM SIO_OBJ WHERE 1=1';
     }
@@ -297,17 +355,30 @@ class SioObj extends BaseNode {
         return this.getCommonSQL() + " AND NOBJ_KOD_NUMOBJ = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return SioAttp.getCommonSQL() + " AND NOBJ_KOD_NUMOBJ = :id";
+    }
+
+    getChildrenIseSQL() {
+        return 'SELECT /*+ RULE */ DISTINCT A.ATTP_KOD_ATTPOINT ies, ld.ID, p.KOD_ATTPOINT p_id,  lb.ID_IES p_ies ' +
+            'FROM SIO_ATTP a, IER_LINK_OBJECTS ld, HR_POINT p, KR_NUMOBJ o,  IER_LINK_OBJECTS lb ' +
+            'WHERE ld.ID_IES = A.ATTP_KOD_ATTPOINT ' +
+            'AND p.KOD_ATTPOINT = ld.ID ' +
+            'AND o.KOD_OBJ = p.KOD_OBJ ' +
+            'AND lb.ID = o.KOD_NUMOBJ ' +
+            'AND lb.KOD_OBJTYPE = 3 ' +
+            'AND lb.ID_IES = A.NOBJ_KOD_NUMOBJ ' +
+            'AND a.NOBJ_KOD_NUMOBJ = :id';
     }
 
     static create(row) {
         return new SioObj(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return new SioAttp(row);
     }
+
 }
 
 class SioAttp extends BaseNode {
@@ -336,24 +407,39 @@ class SioAttp extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT ATTP_KOD_ATTPOINT, NOBJ_KOD_NUMOBJ, FLOW_TYPE, ATTP_NUM, ATTP_NAME, ATTP_KOD_V FROM SIO_ATTP WHERE 1=1';
+        return 'SELECT /*+ RULE*/ ATTP_KOD_ATTPOINT, NOBJ_KOD_NUMOBJ, FLOW_TYPE, ATTP_NUM, ATTP_NAME, ATTP_KOD_V FROM SIO_ATTP WHERE 1=1';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + " AND ATTP_KOD_ATTPOINT = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return SioPoint.getCommonSQL() + " AND a.ATTP_KOD_ATTPOINT = :id";
+    }
+
+    getChildrenIseSQL() {
+        return 'SELECT /*+ RULE */ DISTINCT ap.PNT_KOD_POINT ies, ls.ID, p.KOD_ATTPOINT p_id, li.ID_IES ' +
+            'FROM SIO_ATTP_POINT ap, IER_LINK_OBJECTS ls, HR_POINT p, IER_LINK_OBJECTS li ' +
+            'WHERE ls.ID_IES = ap.PNT_KOD_POINT ' +
+            'AND p.KOD_POINT = ls.ID ' +
+            'AND li.KOD_OBJTYPE = 7 ' +
+            'AND li.ID = p.KOD_ATTPOINT ' +
+            'AND li.ID_IES != ap.ATTP_KOD_ATTPOINT ' +
+            'AND ap.ATTP_KOD_ATTPOINT = :id';
     }
 
     static create(row) {
         return new SioAttp(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return new SioPoint(row);
     }
+
+    // setIseChildProps(row) {
+    //     return null;
+    // }
 }
 
 class SioPoint extends BaseNode {
@@ -387,11 +473,12 @@ class SioPoint extends BaseNode {
         // return 'SELECT DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD ' +
         //     'FROM SIO_ATTP_POINT a, SIO_POINT p WHERE P.PNT_KOD_POINT = A.PNT_KOD_POINT';
 
-        return "SELECT DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD, "+
-                    "'01:'||r.RASX_01||', 02:'||r.RASX_02||', 03:'||r.RASX_03||', 04:'||r.RASX_04||', 05:'||r.RASX_05||', 06:'||r.RASX_06||', 07:'||r.RASX_07||', 08:'||r.RASX_08||', 09:'||r.RASX_09||', 10:'||r.RASX_10||', 11:'||r.RASX_11||', 12:'||r.RASX_12 AS mvolumes "+
-                 "FROM SIO_ATTP_POINT a, SIO_POINT p, SIO_RASX r "+
-                "WHERE p.PNT_KOD_POINT = a.PNT_KOD_POINT "+
-                  "AND r.PNT_KOD_POINT (+) = p.PNT_KOD_POINT";
+        return "SELECT /*+ rule */ DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD, " +
+            "'01:'||r.RASX_01||', 02:'||r.RASX_02||', 03:'||r.RASX_03||', 04:'||r.RASX_04||', 05:'||r.RASX_05||', 06:'||r.RASX_06||', 07:'||r.RASX_07||', 08:'||r.RASX_08||', 09:'||r.RASX_09||', 10:'||r.RASX_10||', 11:'||r.RASX_11||', 12:'||r.RASX_12 AS mvolumes " +
+            "FROM SIO_ATTP_POINT a, SIO_POINT p, SIO_RASX r " +
+            "WHERE p.PNT_KOD_POINT = a.PNT_KOD_POINT " +
+            "AND rownum < 2 "
+        "AND r.PNT_KOD_POINT (+) = p.PNT_KOD_POINT";
 
     }
 
@@ -399,15 +486,29 @@ class SioPoint extends BaseNode {
         return this.getCommonSQL() + " AND p.PNT_KOD_POINT = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return SioPU.getCommonSQL() + " AND PNT_KOD_POINT = :id";
+    }
+
+    getChildrenIseSQL() {
+        return "SELECT /*+ RULE*/ s.PU_KOD_POINT_PU ies, ls.ID, li.ID p_id, li.ID_IES p_ies " +
+            //  дочерние узлы СИО
+            "FROM SIO_PU s " +
+            // дочерние пары
+            "LEFT OUTER JOIN IER_LINK_OBJECTS ls ON (ls.ID_IES = s.PU_KOD_POINT_PU) " +
+            // дочерние узлы ИСЭ
+            "LEFT OUTER JOIN HR_POINT_PU i1 ON (i1.KOD_POINT_PU = ls.ID AND ls.KOD_OBJTYPE = 9) " +
+            "LEFT OUTER JOIN HR_POINT_TR i2 ON (i2.KOD_POINT_TR = ls.ID AND ls.KOD_OBJTYPE = 8) " +
+            // вышестоящие пары (ИСЭ)
+            "LEFT OUTER JOIN IER_LINK_OBJECTS li ON (li.KOD_OBJTYPE = 7 AND (li.ID = i1.KOD_POINT OR li.ID = i2.KOD_POINT)) " +
+            "WHERE s.PNT_KOD_POINT = :id ";
     }
 
     static create(row) {
         return new SioPoint(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return new SioPU(row);
     }
 }
@@ -441,7 +542,7 @@ class SioPU extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT PU_KOD_POINT_PU, PNT_KOD_POINT, FLOW_TYPE, PU_NUM, PU_TYPE, PU_MODEL, PU_GOD_VIP, PU_DAT_PP, PU_DAT_S, PU_DAT_PO, PU_KIND ' +
+        return 'SELECT /*+ RULE*/ PU_KOD_POINT_PU, PNT_KOD_POINT, FLOW_TYPE, PU_NUM, PU_TYPE, PU_MODEL, PU_GOD_VIP, PU_DAT_PP, PU_DAT_S, PU_DAT_PO, PU_KIND ' +
             'FROM SIO_PU WHERE 1=1';
     }
 
@@ -449,15 +550,33 @@ class SioPU extends BaseNode {
         return this.getCommonSQL() + " AND PU_KOD_POINT_PU = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return SioRegister.getCommonSQL() + " AND PU_KOD_POINT_PU = :id";
+    }
+
+    getChildrenIseSQL() {
+        //  у счетчиков (pu_kind == null) подчиненные узлы есть
+        //  а у трансформатров (pu_kind != null) их нет 
+        return this.visible.pu_kind
+            ? null
+            : "WITH ini AS (SELECT /*+ RULE */ i.KOD_POINT_INI, E.KOD_POINT_PU FROM HR_POINT_INI i, HR_POINT_EN e WHERE i.KOD_POINT_EN = e.KOD_POINT_EN) " +
+                "SELECT /*+ RULE*/ s.INI_KOD_POINT_INI ies, ls.ID, i.KOD_POINT_PU p_id, li.ID_IES p_ies " +
+                // дочерние узлы СИО
+                "FROM SIO_INI s " +
+                // дочерние пары
+                "LEFT OUTER JOIN IER_LINK_OBJECTS ls ON (ls.ID_IES = s.INI_KOD_POINT_INI) " +
+                // дочерние узлы ИСЭ
+                "LEFT OUTER JOIN INI i ON (i.KOD_POINT_INI = ls.ID) " +
+                // вышестоящие пары (ИСЭ)
+                "LEFT OUTER JOIN IER_LINK_OBJECTS li ON (li.KOD_OBJTYPE = 9 AND li.ID = i.KOD_POINT_PU) " +
+                "WHERE s.PU_KOD_POINT_PU = :id";
     }
 
     static create(row) {
         return new SioPU(row);
     }
 
-    createChild(row) {
+    createSioChild(row) {
         return new SioRegister(row);
     }
 }
@@ -490,7 +609,7 @@ class SioRegister extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT INI_KOD_POINT_INI, PU_KOD_POINT_PU, FLOW_TYPE, INI_KOD_DIRECTEN, INI_ENERGY, INI_KODINTERVAL, INI_RKOEF, INI_RAZR, INI_RAZR2 ' +
+        return 'SELECT /*+ rule */ INI_KOD_POINT_INI, PU_KOD_POINT_PU, FLOW_TYPE, INI_KOD_DIRECTEN, INI_ENERGY, INI_KODINTERVAL, INI_RKOEF, INI_RAZR, INI_RAZR2 ' +
             'FROM SIO_INI WHERE 1=1';
     }
 
@@ -498,12 +617,20 @@ class SioRegister extends BaseNode {
         return this.getCommonSQL() + " AND INI_KOD_POINT_INI = :id";
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
+        return null;
+    }
+
+    getChildrenIseSQL() {
         return null;
     }
 
     static create(row) {
         return new SioRegister(row);
+    }
+
+    setIseChildProps(row) {
+        return null;
     }
 }
 
@@ -533,15 +660,25 @@ class IseAbon extends BaseNode {
         this.title = `${this.visible.nump} (${this.visible.tag})`;
     }
 
+    static getMySQL() {
+        return 'SELECT /*+ RULE*/ ID, KOD_OBJTYPE, FLOW_TYPE, DT, TAG, ' +
+            'P.NUMP, P.NAME, P.INN, P.U_M, P.D_M ' +
+            'FROM IER_LINK_OBJECTS l, KR_PAYER p ' +
+            'WHERE l.KOD_OBJTYPE = 2 ' +
+            'AND l.ID = P.KODP ' +
+            'AND l.ID_IES = :ies';
+    }
+
+
     static getCommonSQL() {
-        return 'SELECT p.KODP, P.NUMP, P.NAME, P.INN, P.U_M, P.D_M FROM KR_PAYER p WHERE 1=1';
+        return 'SELECT /*+ RULE*/ p.KODP, P.NUMP, P.NAME, P.INN, P.U_M, P.D_M FROM KR_PAYER p WHERE 1=1';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + ` AND p.KODP = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
@@ -577,14 +714,14 @@ class IseDog extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT d.KOD_DOG as ID, d.KOD_DOG, d.NDOG, d.DAT_NUMDOG, d.PR_ACTIVE, o.SNAME, d.U_M, d.D_M FROM KR_DOGOVOR d, KR_ORG o WHERE o.KODP = d.DEP';
+        return 'SELECT /*+ RULE*/ d.KOD_DOG as ID, d.KOD_DOG, d.NDOG, d.DAT_NUMDOG, d.PR_ACTIVE, o.SNAME, d.U_M, d.D_M FROM KR_DOGOVOR d, KR_ORG o WHERE o.KODP = d.DEP';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + ` AND d.KOD_DOG = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
@@ -622,14 +759,14 @@ class IseObj extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_NUMOBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1';
+        return 'SELECT /*+ RULE*/ KOD_NUMOBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + ` AND KOD_NUMOBJ = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
@@ -665,14 +802,14 @@ class IseAttp extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_ATTPOINT, ATTPOINT_NAME, KOD_SRC, KOD_V, D_CREATE, D_FINISH FROM HR_ATTPOINT WHERE 1=1';
+        return 'SELECT /*+ RULE*/ KOD_ATTPOINT, ATTPOINT_NAME, KOD_SRC, KOD_V, D_CREATE, D_FINISH FROM HR_ATTPOINT WHERE 1=1';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + ` AND KOD_ATTPOINT = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
@@ -708,19 +845,66 @@ class IsePoint extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_POINT, NOMER, MESTO, DAT_S, DAT_PO, NAME FROM HR_POINT WHERE 1=1';
+        return 'SELECT /*+ RULE*/ KOD_POINT, NOMER, MESTO, DAT_S, DAT_PO, NAME FROM HR_POINT WHERE 1=1';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + ` AND KOD_POINT = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
     static create(row) {
         return new IsePoint(row);
+    }
+}
+
+class IseTr extends BaseNode {
+
+    constructor(row) {
+        super();
+
+        this.visible = {
+            kod_point_tr: row.KOD_POINT_TR,
+            kod_tiptn: row.KOD_TIPTN,
+            zav_nom: row.ZAV_NOM,
+            kodsp_ttn_u: row.KODSP_TTN_U,
+            dat_s: row.DAT_S,
+            dat_po: row.DAT_PO,
+            faza: row.FAZA,
+            pr_active: row.PR_ACTIVE,
+            d_m: row.D_M,
+            u_m: row.U_M,
+            tag: null,
+        };
+        this.source = 'ISE';
+        this.type = 'TRS';
+        this.id = this.visible.kod_point_tr;
+        this.parent_id = '';
+        this.title = '';
+        this.updateTitle();
+    }
+
+    updateTitle() {
+        this.title = `${this.visible.kod_tiptn}`;
+    }
+
+    static getCommonSQL() {
+        return 'SELECT /*+ RULE*/ KOD_POINT_TR, KOD_TIPTN, ZAV_NOM, DAT_S, DAT_PO, KOD_BAL, FAZA, D_M, U_M, PR_ACTIVE, KODSP_TTN_U FROM HR_POINT_TR WHERE 1=1';
+    }
+
+    static getSelfSQL() {
+        return this.getCommonSQL() + ` AND KOD_POINT_TR = :id`;
+    }
+
+    getChildrenSioSQL() {
+        return null;
+    }
+
+    static create(row) {
+        return new IseTr(row);
     }
 }
 
@@ -755,14 +939,14 @@ class IsePU extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT KOD_POINT_PU, NOM_PU, DAT_S, DAT_PO, DAT_POVER, RAZR, RAZR2, PR_ACTIVE, D_M, U_M  FROM HR_POINT_PU WHERE 1=1';
+        return 'SELECT /*+ RULE*/ KOD_POINT_PU, NOM_PU, DAT_S, DAT_PO, DAT_POVER, RAZR, RAZR2, PR_ACTIVE, D_M, U_M  FROM HR_POINT_PU WHERE 1=1';
     }
 
     static getSelfSQL() {
         return this.getCommonSQL() + ` AND KOD_POINT_PU = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
@@ -803,7 +987,7 @@ class IseReg extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT i.KOD_POINT_INI, i.PR_ACTIVE, i.DAT_S, i.DAT_PO, i.RKOEFF, i.KODINTERVAL, E.ENERGY, E.KOD_DIRECTEN, ' +
+        return 'SELECT /*+ RULE*/ i.KOD_POINT_INI, i.PR_ACTIVE, i.DAT_S, i.DAT_PO, i.RKOEFF, i.KODINTERVAL, E.ENERGY, E.KOD_DIRECTEN, ' +
             "replace(d.ID_IES, 'http://trinidata.ru/sigma/ТарифнаяЗонаСуток', '') INTERVAL " +
             'FROM HR_POINT_INI i, HR_POINT_EN e, IER_LINK_DATADICTS d ' +
             'WHERE e.KOD_POINT_EN = i.KOD_POINT_EN AND d.KOD_DICT = 11 AND d.ID (+) = i.KODINTERVAL';
@@ -813,7 +997,7 @@ class IseReg extends BaseNode {
         return this.getCommonSQL() + ` AND i.KOD_POINT_INI = :id`;
     }
 
-    getChildrenSQL() {
+    getChildrenSioSQL() {
         return null;
     }
 
@@ -826,7 +1010,7 @@ module.exports = {
     ALL_CHILDREN: ALL_CHILDREN,
     WO_CHILDREN: WO_CHILDREN,
     DIR_CHILDREN: DIR_CHILDREN,
-    Glob: Glob,
+    GlobSIO: GlobSIO,
     BaseNode: BaseNode,
     SioAbon: SioAbon,
     SioDog: SioDog,
@@ -840,6 +1024,7 @@ module.exports = {
     IseObj: IseObj,
     IseAttp: IseAttp,
     IsePoint: IsePoint,
+    IseTr: IseTr,
     IsePU: IsePU,
     IseReg: IseReg
 }

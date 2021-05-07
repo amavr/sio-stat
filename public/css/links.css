@@ -41,6 +41,22 @@ details.main {
     margin-left: 0px;
 }
 
+details.NS_GOOD > summary > i.bi {
+    background-color: #009f4d;
+}
+
+details.NS_LOST > summary > i.bi {
+    background-color: #aaa;
+}
+
+details.NS_MORE > summary > i.bi {
+    background-color: #ffc107;
+}
+
+details.NS_DIFF > summary > i.bi {
+    background-color: #ff3300;
+}
+
 .shifted {
     margin-left: 32px;
 }
@@ -164,7 +180,9 @@ details.problems>summary {
 }
 
 div.problems {
+    font-family: "Open Sans Condensed";
     background-color: #fff;
+    color: #e00;
 }
 
 div.problems table {

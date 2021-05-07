@@ -5,6 +5,7 @@ const path = require('path');
 const log4js = require('log4js');
 const moment = require('moment');
 const sqlFormatter = require('sql-formatter');
+const onHeaders = require('on-headers');
 
 const cfg = require('../../config').api;
 const CONST = require('../../resources/const');
@@ -23,7 +24,7 @@ const {
     ALL_CHILDREN,
     WO_CHILDREN,
     DIR_CHILDREN,
-    Glob,
+    GlobSIO,
     BaseNode,
     SioAbon,
     SioDog,
@@ -38,9 +39,11 @@ const {
     IseAttp,
     IsePoint,
     IsePU,
+    IseTr,
     IseReg
 } = require('../../models/sio_tree');
 const { localsAsTemplateData } = require('hbs');
+const OracleDB = require('oracledb');
 
 const http_codes = [204, 301, 304, 400, 401, 403, 404, 500, 503];
 
@@ -62,7 +65,7 @@ setImmediate(async () => {
 });
 
 
-const loadTab = async function(tab, key){
+const loadTab = async function (tab, key) {
     const fname = `D:/IE/tmp/${tab}.txt`;
     // await FileHelper.save(fname, '');
     let rows = await db.select(`SELECT DISTINCT ${key} FROM ${tab}`);
@@ -110,6 +113,14 @@ setInterval(async () => {
     }
 
 }, 30000);
+
+function scrubETag(res) {
+    onHeaders(res, function () {
+        this.removeHeader('ETag')
+    })
+}
+
+
 
 router.get('/v1/ping', async (req, res) => {
     try {
@@ -390,7 +401,7 @@ router.get('/v1/links/dblise', async (req, res) => {
 });
 
 router.get('/v2/links/info/', async (req, res) => {
-    res.status(400).json({msg: 'URL не содежит параметр SIO с идетификатором'})
+    res.status(400).json({ msg: 'URL не содежит параметр SIO с идетификатором' })
 });
 
 router.get('/v2/links/info/:key', async (req, res) => {
@@ -404,7 +415,9 @@ router.get('/v2/links/info/:key', async (req, res) => {
         /// 1. get key chain to parent
         const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))`;
         const binds = { key: req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key };
+        log.debug(`GET_SIO_KEYS_UP ${binds.key}`);
         const chain_rows = await db.select(chain_sql, binds);
+        log.debug(`found ${chain_rows.length} keys`);
 
         /// 2. query all nodes from chain by id
         if (chain_rows.length > 0) {
@@ -417,7 +430,7 @@ router.get('/v2/links/info/:key', async (req, res) => {
             let parent = null;
             for (let i = chain_rows.length - 1; i >= 0; i--) {
                 const parts = chain_rows[i].IES.split(',');
-                const node = await Glob.create(parts[1], parseInt(parts[0]));
+                const node = await GlobSIO.create(parts[1], parseInt(parts[0]));
                 if (abon === null) {
                     abon = node;
                 }
@@ -429,12 +442,17 @@ router.get('/v2/links/info/:key', async (req, res) => {
                 parent = node;
             }
         }
-
+        else{
+            const error = new Error(`Узел '${CONST.SIO_ID_PFX + req.params.key}' не имеет пары`);
+            error.code = 404;
+            throw error;
+        }
         abon.markBranch(req.params.key, 'selected', true);
         res.json([abon]);
     }
     catch (ex) {
-        res.status(500).json({ msg: ex.message }).end();
+        if(ex.code === undefined) ex.code = 500;
+        res.status(ex.code).json({ msg: ex.message }).end();
         log.error(ex);
     }
 });
@@ -442,23 +460,11 @@ router.get('/v2/links/info/:key', async (req, res) => {
 router.get('/v1/links/node-children/:key', async (req, res) => {
     try {
 
-        let abon = null;
-
-        /// 1. get key chain to parent
-        const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))`;
+        const sql = 'SELECT /*+ RULE */ KOD_OBJTYPE FROM IER_LINK_OBJECTS WHERE ID_IES = :key AND ROWNUM < 2';
         const binds = { key: req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key };
-        const rows = await db.select(chain_sql, binds);
-
-        /// 2. query all nodes from chain by id
+        const rows = await db.select(sql, binds);
         if (rows.length > 0) {
-
-            const parts = rows[0].IES.split(',');
-
-            if (rows[0].IES.startsWith('0')) {
-                throw new Error(rows[0].IES.substr(2));
-            }
-
-            const node = await Glob.create(parts[1], parseInt(parts[0]));
+            const node = await GlobSIO.create(binds.key, rows[0].KOD_OBJTYPE);
             await node.loadChildren();
             node.loaded = true;
 
@@ -469,13 +475,19 @@ router.get('/v1/links/node-children/:key', async (req, res) => {
         }
     }
     catch (ex) {
-        res.status(500).json({ msg: ex.message }).end();
+        if(ex.code === undefined) ex.code = 500;
+        res.status(ex.code).json({ msg: ex.message }).end();
         log.error(ex);
     }
 });
 
 router.get('/v1/links/check-children/:key', async (req, res) => {
     try {
+        res.send({ audit: {} });
+        return;
+
+        scrubETag(res);
+
         const key = req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key;
 
         /// 1. get key chain to parent
@@ -526,6 +538,9 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
                     break;
                 case 7:
                     ise_node = await IsePoint.load(row.ID);
+                    break;
+                case 8:
+                    ise_node = await IseTr.load(row.ID);
                     break;
                 case 9:
                     ise_node = await IsePU.load(row.ID);
@@ -681,15 +696,15 @@ router.get('/v1/links/check/', async (req, res) => {
 
 router.get('/v1/test', async (req, res) => {
     try {
-        const txt = await FileHelper.readText('D:/temp/test-log.txt');
-
-        res.send({ text: txt });
-        // throw new Error('test error');
-
-        // const binds = { key: 'http://trinidata.ru/sigma/Системаио_995230_ТПО_ЮЛ_2215933653' };
-        // let sql = 'SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))';
-        // let rows = await db.select(sql, binds);
-        // res.json(rows);
+        const binds = { 
+            keys: {
+                type: OracleDB.DB_TYPE_OBJECT,
+                val: ['http://trinidata.ru/sigma/Системаио_995230_ЭО_ЮЛ_6371703812', 'http://trinidata.ru/sigma/Системаио_995230_ЭО_ЮЛ_4906075804']
+            }
+        }
+        let sql = 'SELECT l.* from ier_link_objects l, TABLE(:keys) t where l.id_ies = t.column_value';
+        let rows = await db.select(sql, binds);
+        res.json(rows);
     }
     catch (ex) {
         res.status(500).json({ msg: ex.message }).end();

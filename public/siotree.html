@@ -47,7 +47,7 @@
 
         <h1>{{page_id}}</h1>
         <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
-        <div class="error-box" v-show="error" style="display: none;">{{error}}</div>
+        <pre class="error-box" v-show="error" style="display: none;">{{error}}</pre>
         <section>
             <tree :nodes="nodes"></tree>
         </section>
@@ -80,7 +80,7 @@
             template: `
 <div>
     <details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" 
-        v-bind:class="{'bad': item.audit.length > 0}" >
+        v-bind:class="item.audit.state" >
         <summary v-bind:class="{'selected': item.equals}" v-on:click="loadChildren($event, item)"><i v-bind:class="'bi bi-' + item.icon"></i><span>{{item.title}}</span></summary>
         <div>
             <div class="props">
@@ -97,18 +97,9 @@
                 </div>
             </div>
 
-            <details v-show="item.audit.length" class="problems">
-                <summary>Проблемы</summary>
-                <div class="problems">
-                    <table>
-                        <tr v-for="(a, i) in item.audit">
-                            <td>{{a.IDX}}</td>
-                            <td>{{a.VAL}}</td>
-                            <td>{{a.VAL2}}</td>
-                        </tr>
-                    </table>
-                </div>
-            </details>
+            <div v-show="item.audit.state != 'NS_GOOD'" class="problems">
+                <div>Проблема: {{item.audit.state}}</div>
+            </div>
         </div>
         <div class="shifted">
             <tree :nodes="item.nodes"></tree>
@@ -192,6 +183,10 @@
                             const answer = await res.json();
                             this.error = answer.msg;
                             this.nodes = [];
+                        } else if(res.status === 404) {
+                            const answer = await res.json();
+                            this.error = answer.msg;
+                            this.nodes = [];
                         } else {
                             this.nodes = await res.json();
                             this.page_id = decodeURI(sioKey);
@@ -214,7 +209,12 @@
                         let res = await fetch(`/api/v1/links/node-children/${item.id}`);
                         answer = await res.json();
                         if (res.status === 500) {
-                            element.parentElement.parentElement.classList.add('bad');
+                            element.parentElement.classList.add('bad');
+                            element.title = answer.msg;
+                            throw new Error(answer.msg);
+                        }
+                        if (res.status === 404) {
+                            element.parentElement.classList.add('bad');
                             element.title = answer.msg;
                             throw new Error(answer.msg);
                         }
@@ -238,11 +238,11 @@
                     } catch (ex) {
                         this.error = ex.message;
                         node.error = true;
-                        node.audit.push({
-                            IDX: null,
-                            VAL: item.id,
-                            VAL2: ex.message
-                        });
+                        // node.audit.push({
+                        //     IDX: null,
+                        //     VAL: item.id,
+                        //     VAL2: ex.message
+                        // });
                         console.error(ex.message + ' ' + ex.stack);
                     }
                     this.waiting = false;
@@ -252,12 +252,13 @@
                     let answer = [];
                     this.waiting = true;
                     try {
-                        const node = this.findSioNodeById(this.nodes, item.id);
-
-                        let res = await fetch(`/api/v1/links/sio2ise/${item.id}`);
-                        answer = await res.json();
-                        node.ise_nodes = answer.ise_nodes;
-                        node.ise_loaded = true;
+                        if(document.querySelector('#ise-' + item.id).classList.contains('show') === false){
+                            const node = this.findSioNodeById(this.nodes, item.id);
+                            let res = await fetch(`/api/v1/links/sio2ise/${item.id}`);
+                            answer = await res.json();
+                            node.ise_nodes = answer.ise_nodes;
+                            node.ise_loaded = true;
+                        }
                     } catch (ex) {
                         this.error = ex.message;
                     }
