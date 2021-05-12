@@ -6,20 +6,14 @@ const db = require('../helpers/db');
 const { GlobalISE, GlobISE } = require('./ise_nodes');
 const log = log4js.getLogger('SIO-NODES');
 
-// NODE STATES
-const NS_GOOD = '#0a0';
-const NS_LOST = '#aaa';
-const NS_MORE = '#00a';
-const NS_DIFF = '#a00';
-
 class GlobSIO {
     static async create(id, objtype) {
         let res = null;
         switch (objtype) {
-            case 1:
+            case 2:
                 res = await SioAbon.load(id);
                 break;
-            case 2:
+            case 1:
                 res = await SioDog.load(id);
                 break;
             case 3:
@@ -76,6 +70,9 @@ class BaseNode {
         this.links = 0;
         // ссылки на вспомогательные страницы (лог, пары и пр.)
         this.refs = {};
+
+        this.type = 'ABS';
+        this.type_code = 0;
     }
 
     // используется для ISE узлов
@@ -104,7 +101,7 @@ class BaseNode {
         const rows = await db.select(sql, { id: adp.addPfx(id) });
 
         if (rows.length === 0) {
-            const error = new Error(`${this.name} NOT FOUND IN DATABASE WIHT KEY ${id} ${sql}`);
+            const error = new Error(`${this.name} NOT FOUND IN DATABASE WITH KEY ${id} ${sql}`);
             error.code = 404;
             throw error;
         }
@@ -214,6 +211,7 @@ class SioAbon extends BaseNode {
         };
         this.source = 'SIO';
         this.type = 'ABN';
+        this.type_code = 2;
         this.id = this.visible.abon_kodp;
         this.parent_id = null;
         this.title = `${this.visible.abon_name} (${this.visible.abon_inn})`
@@ -276,10 +274,13 @@ class SioDog extends BaseNode {
         };
         this.source = 'SIO';
         this.type = 'DOG';
+        this.type_code = 1;
         this.id = this.visible.dg_kod_dog;
         this.parent_id = row.ABON_KODP;
         this.title = `${this.visible.dg_ndog} (${this.visible.dg_dat_numdog})`;
-        this.icon = 'vector-pen';
+        // this.icon = 'vector-pen';
+        // this.icon = 'file-earmark-text';
+        this.icon = 'stickies';
         this.refs = {
             'Лог': `/siotransacts.html?sio=${this.id}`,
         };
@@ -307,7 +308,7 @@ class SioDog extends BaseNode {
             "LEFT OUTER JOIN KR_NUMOBJ i ON (i.KOD_NUMOBJ = ls.ID) " +
             // вышестоящие пары (ИСЭ)
             "LEFT OUTER JOIN IER_LINK_OBJECTS li ON (li.KOD_OBJTYPE = 1 AND li.ID = i.KOD_DOG) " +
-            "WHERE s.DG_KOD_DOG = :id";
+            "WHERE s.DG_KOD_DOG = :id ";
     }
 
     static create(row) {
@@ -333,11 +334,13 @@ class SioObj extends BaseNode {
         };
         this.source = 'SIO';
         this.type = 'OBJ';
+        this.type_code = 3;
         this.id = this.visible.nobj_kod_numobj;
         this.parent_id = row.DG_KOD_DOG;
         this.title = `${this.visible.nobj_num} (${this.visible.nobj_name})`;
         this.nodes = [];
-        this.icon = 'diagram-3-fill';
+        // this.icon = 'diagram-3-fill';
+        this.icon = 'building';
 
         this.refs = {
             'Лог': `/siotransacts.html?sio=${this.id}`,
@@ -394,6 +397,7 @@ class SioAttp extends BaseNode {
         }
         this.source = 'SIO';
         this.type = 'ATP';
+        this.type_code = 4;
         this.id = this.visible.attp_kod_attpoint;
         this.parent_id = row.NOBJ_KOD_NUMOBJ;
         this.title = `${this.visible.attp_num} (${this.visible.attp_name})`;
@@ -459,6 +463,7 @@ class SioPoint extends BaseNode {
         }
         this.source = 'SIO';
         this.type = 'PNT';
+        this.type_code = 7;
         this.id = this.visible.pnt_kod_point;
         this.parent_id = row.ATTP_KOD_ATTPOINT;
         this.title = `${this.visible.pnt_num} (${this.visible.pnt_name})`;
@@ -473,13 +478,16 @@ class SioPoint extends BaseNode {
         // return 'SELECT DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD ' +
         //     'FROM SIO_ATTP_POINT a, SIO_POINT p WHERE P.PNT_KOD_POINT = A.PNT_KOD_POINT';
 
-        return "SELECT /*+ rule */ DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD, " +
+        const sql = "SELECT /*+ rule */ DISTINCT P.PNT_KOD_POINT, a.ATTP_KOD_ATTPOINT, p.NOBJ_KOD_NUMOBJ, P.FLOW_TYPE, P.PNT_NUM, P.PNT_NAME, P.PNT_DAT_S, P.PNT_DAT_PO, P.PNT_CALC_METHOD, " +
             "'01:'||r.RASX_01||', 02:'||r.RASX_02||', 03:'||r.RASX_03||', 04:'||r.RASX_04||', 05:'||r.RASX_05||', 06:'||r.RASX_06||', 07:'||r.RASX_07||', 08:'||r.RASX_08||', 09:'||r.RASX_09||', 10:'||r.RASX_10||', 11:'||r.RASX_11||', 12:'||r.RASX_12 AS mvolumes " +
             "FROM SIO_ATTP_POINT a, SIO_POINT p, SIO_RASX r " +
             "WHERE p.PNT_KOD_POINT = a.PNT_KOD_POINT " +
-            "AND rownum < 2 "
-        "AND r.PNT_KOD_POINT (+) = p.PNT_KOD_POINT";
+            // "AND rownum < 2 "+
+            "AND r.PNT_KOD_POINT (+) = p.PNT_KOD_POINT";
+        
+        log.debug(sql);
 
+        return sql;
     }
 
     static getSelfSQL() {
@@ -531,6 +539,7 @@ class SioPU extends BaseNode {
         }
         this.source = 'SIO';
         this.type = 'PUE';
+        this.type_code = 9;
         this.id = this.visible.pu_kod_point_pu;
         this.parent_id = row.PNT_KOD_POINT;
         this.title = this.visible.pu_kind ? `${this.visible.pu_kind} ${this.visible.pu_num}` : `Счетчик ${this.visible.pu_num}`;
@@ -597,13 +606,15 @@ class SioRegister extends BaseNode {
         }
         this.source = 'SIO';
         this.type = 'REG';
+        this.type_code = 10;
         this.id = this.visible.ini_kod_point_ini;
         this.parent_id = row.PU_KOD_POINT_PU;
         this.title = `${this.visible.ini_kodinterval} / ${this.visible.ini_kod_directen}`;
         this.nodes = [];
         // this.icon = 'toggles';
-        this.icon = 'menu-button-wide-fill';
-        this.refs = {
+        // this.icon = 'menu-button-wide-fill';
+        this.icon = 'segmented-nav';
+       this.refs = {
             'Лог': `/siotransacts.html?sio=${this.id}`,
         };
     }
@@ -629,9 +640,9 @@ class SioRegister extends BaseNode {
         return new SioRegister(row);
     }
 
-    setIseChildProps(row) {
-        return null;
-    }
+    // setIseChildProps(row) {
+    //     return null;
+    // }
 }
 
 class IseAbon extends BaseNode {

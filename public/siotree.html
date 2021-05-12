@@ -206,8 +206,7 @@
                     this.waiting = true;
                     const node = this.findSioNodeById(this.nodes, item.id);
                     try {
-                        let res = await fetch(`/api/v1/links/node-children/${item.id}`);
-                        answer = await res.json();
+                        let res = await fetch(`/api/v1/links/node-children/${item.type_code}/${item.id}`);
                         if (res.status === 500) {
                             element.parentElement.classList.add('bad');
                             element.title = answer.msg;
@@ -218,23 +217,9 @@
                             element.title = answer.msg;
                             throw new Error(answer.msg);
                         }
+                        answer = await res.json();
                         node.nodes = answer;
                         node.loaded = true;
-
-                        res = await fetch(`/api/v1/links/check-children/${item.id}`);
-                        answer = await res.json();
-                        if (res.status === 500) {
-                            throw new Error(answer.message);
-                        }
-                        for (const [key, val] of Object.entries(answer.audit)) {
-                            const child = this.findSioNodeById(node.nodes, key);
-                            if (child) {
-                                if (child.audit === undefined) {
-                                    child.audit = [];
-                                }
-                                child.audit.push(val);
-                            }
-                        }
                     } catch (ex) {
                         this.error = ex.message;
                         node.error = true;

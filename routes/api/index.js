@@ -413,7 +413,8 @@ router.get('/v2/links/info/:key', async (req, res) => {
         let abon = null;
 
         /// 1. get key chain to parent
-        const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))`;
+        const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GO_TOP(:key))`;
+        // const chain_sql = `SELECT COLUMN_VALUE AS IES FROM TABLE(DBG_TOOLS.GET_SIO_KEYS_UP(:key))`;
         const binds = { key: req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key };
         log.debug(`GET_SIO_KEYS_UP ${binds.key}`);
         const chain_rows = await db.select(chain_sql, binds);
@@ -442,7 +443,7 @@ router.get('/v2/links/info/:key', async (req, res) => {
                 parent = node;
             }
         }
-        else{
+        else {
             const error = new Error(`Узел '${CONST.SIO_ID_PFX + req.params.key}' не имеет пары`);
             error.code = 404;
             throw error;
@@ -451,31 +452,22 @@ router.get('/v2/links/info/:key', async (req, res) => {
         res.json([abon]);
     }
     catch (ex) {
-        if(ex.code === undefined) ex.code = 500;
+        if (ex.code === undefined) ex.code = 500;
         res.status(ex.code).json({ msg: ex.message }).end();
         log.error(ex);
     }
 });
 
-router.get('/v1/links/node-children/:key', async (req, res) => {
+router.get('/v1/links/node-children/:type/:key', async (req, res) => {
     try {
+        const node = await GlobSIO.create(req.params.key, Number.parseInt(req.params.type));
+        await node.loadChildren();
+        node.loaded = true;
 
-        const sql = 'SELECT /*+ RULE */ KOD_OBJTYPE FROM IER_LINK_OBJECTS WHERE ID_IES = :key AND ROWNUM < 2';
-        const binds = { key: req.params.key.startsWith('column') ? req.params.key : CONST.SIO_ID_PFX + req.params.key };
-        const rows = await db.select(sql, binds);
-        if (rows.length > 0) {
-            const node = await GlobSIO.create(binds.key, rows[0].KOD_OBJTYPE);
-            await node.loadChildren();
-            node.loaded = true;
-
-            res.json(node.nodes);
-        }
-        else {
-            res.json([]);
-        }
+        res.json(node.nodes);
     }
     catch (ex) {
-        if(ex.code === undefined) ex.code = 500;
+        if (ex.code === undefined) ex.code = 500;
         res.status(ex.code).json({ msg: ex.message }).end();
         log.error(ex);
     }
@@ -696,7 +688,7 @@ router.get('/v1/links/check/', async (req, res) => {
 
 router.get('/v1/test', async (req, res) => {
     try {
-        const binds = { 
+        const binds = {
             keys: {
                 type: OracleDB.DB_TYPE_OBJECT,
                 val: ['http://trinidata.ru/sigma/Системаио_995230_ЭО_ЮЛ_6371703812', 'http://trinidata.ru/sigma/Системаио_995230_ЭО_ЮЛ_4906075804']
