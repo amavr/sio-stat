@@ -10,7 +10,8 @@ class OracleDB {
 
         oracledb.extendedMetaData = true;
         oracledb.autoCommit = true;
-
+        oracledb.fetchAsString = [ oracledb.CLOB ];
+        
         this.sqls = {};
         this.pool = null;
         this.refs = {};
@@ -30,8 +31,8 @@ class OracleDB {
     async loadRefs(dbcon) {
         const sql = 'SELECT KOD_DICT, ID, ID_IES FROM IER_LINK_DATADICTS ORDER BY 1, 2, 3';
         const res = await dbcon.execute(sql, {}, { outFormat: oracledb.OBJECT });
-        for(const row of res.rows){
-            if(this.refs[row.KOD_DICT] === undefined){
+        for (const row of res.rows) {
+            if (this.refs[row.KOD_DICT] === undefined) {
                 this.refs[row.KOD_DICT] = {};
             }
             this.refs[row.KOD_DICT][row.ID_IES] = row.ID;
@@ -88,6 +89,43 @@ class OracleDB {
         return result.rows;
     }
 
+    async insertMany(sql, rows) {
+        var options = {
+            autoCommit: false,   // autocommit if there are no batch errors
+            batchErrors: false   // true - продолжение выполнения, даже если существуют ошибки в части записей
+        };
+
+        const res = {
+            execResult: null,
+            success: false,
+            error: null
+        }
+
+        if (rows.length > 0) {
+
+            const me = this;
+            let dbcon = null;
+            try {
+                dbcon = await this.getConnection();
+                res.execResult = await dbcon.executeMany(sql, rows, options);
+                res.success = res.execResult.rowsAffected === rows.length;
+                await dbcon.commit();
+            } catch (ex) {
+                res.success = false;
+                res.error = ex.message;
+                console.log(res);
+                console.log(`rows.length: ${rows.length}`);
+                log.error(ex.message);
+                await dbcon.rollback();
+            }
+            finally{
+                await me.close(dbcon);
+            }
+        }
+
+        return res;
+    }
+
     async selectSqlName(sqlName, binds, replacings) {
         let sql = this.getSqlByName(sqlName);
         if (replacings) {
@@ -96,7 +134,7 @@ class OracleDB {
             }
         }
         log.debug(sql);
-        if(binds){
+        if (binds) {
             log.debug(JSON.stringify(binds));
         }
         return await this.select(sql, binds);

@@ -90,7 +90,7 @@
                     data-toggle="collapse" role="button" aria-expanded="false" 
                     v-bind:aria-controls="'ise-' + item.id"
                     v-on:click="showIseInfo($event, item)">Информация из ИСЭ</a>
-                <a v-for="(val, name) in item.refs" v-bind:href="val" class="btn btn-outline-primary btn-sm" target="_blank" v-on:click="openVolumes($event, val);">{{name}}</a>                
+                <a v-for="(val, name) in item.refs" v-bind:href="val" class="btn btn-outline-primary btn-sm" target="_blank" v-on:click="openVolumes($event, val);">{{name}}</a>
                 <div class="ise collapse" v-bind:id="'ise-' + item.id">
                     <hr color="#ccc" size="1"/>
                     <tab v-for="(item, index) in item.ise_nodes" :key="item.id" :obj="item" v-bind:class="item.visible.tag"></tab>

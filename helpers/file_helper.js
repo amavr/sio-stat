@@ -3,6 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
+const lineReader = require('line-reader');
 const fsp = fs.promises;
 const moment = require('moment');
 const Utils = require('./utils');
@@ -17,7 +18,7 @@ const TYPE_NAMES = {
 
 class FileHelper {
 
-    static FileExistsSync(fpath){
+    static FileExistsSync(fpath) {
         return fs.existsSync(fpath);
     }
 
@@ -56,6 +57,12 @@ class FileHelper {
                 .catch(err => {
                     reject(err);
                 });
+        });
+    }
+
+    static readByLine(filePath, onLine) {
+        lineReader.eachLine(filePath, (line, last) => {
+            onLine(line);
         });
     }
 
@@ -128,7 +135,7 @@ class FileHelper {
         }
     }
 
-    static getTimeFilename(ext){
+    static getTimeFilename(ext) {
         return moment().format('YYYYMMDD-HHmmss-SSSS') + '.' + (ext ? ext.replace(/^\.*/g, '') : 'json');
     }
 

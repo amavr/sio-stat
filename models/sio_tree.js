@@ -295,7 +295,7 @@ class SioDog extends BaseNode {
     }
 
     getChildrenSioSQL() {
-        return SioObj.getCommonSQL() + " AND DG_KOD_DOG = :id";
+        return SioObj.getCommonSQL() + " AND DG_KOD_DOG = :id ORDER BY NOBJ_NUM";
     }
 
     getChildrenIseSQL() {
@@ -749,6 +749,7 @@ class IseObj extends BaseNode {
 
         this.visible = {
             kod_numobj: row.KOD_NUMOBJ,
+            num_obj: row.NUM_OBJ,
             name: row.NAME,
             dat_create: row.DAT_CREATE,
             pr_active: row.PR_ACTIVE,
@@ -770,7 +771,7 @@ class IseObj extends BaseNode {
     }
 
     static getCommonSQL() {
-        return 'SELECT /*+ RULE*/ KOD_NUMOBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1';
+        return 'SELECT /*+ RULE*/ KOD_NUMOBJ, NUM_OBJ, NAME, DAT_CREATE, TARIF, PR_ACTIVE FROM KR_NUMOBJ WHERE 1=1';
     }
 
     static getSelfSQL() {

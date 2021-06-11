@@ -444,7 +444,7 @@ router.get('/v2/links/info/:key', async (req, res) => {
             }
         }
         else {
-            const error = new Error(`Узел '${CONST.SIO_ID_PFX + req.params.key}' не имеет пары`);
+            const error = new Error(`Узел '${CONST.SIO_ID_PFX + req.params.key}' не найден`);
             error.code = 404;
             throw error;
         }
@@ -555,6 +555,14 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
         res.status(500).json({ msg: ex.message }).end();
         log.error(ex);
     }
+});
+
+router.get('/v1/links/ise2sio/:key/:type', async (req, res) => {
+    const binds = { key: req.params.key, type: req.params.type };
+
+    // 1. Пары
+    const rows = await db.selectSqlName('links.sio_keys', binds);
+    res.send(rows);
 });
 
 router.get('/v1/links/log/:key', async (req, res) => {
@@ -756,10 +764,104 @@ router.get('/v1/stat/objects/added', async (req, res) => {
     res.send(data);
 });
 
+router.get('/v1/upload/:table/:file', async (req, res) => {
+    console.log(req.headers);
+    console.log(req.params.file);
+    console.log(req.params.table);
+
+    // проверка существования таблицы
+    let sql = `SELECT * FROM user_tables WHERE TABLE_NAME = '${req.params.table.toUpperCase()}'`;
+    const check_res = await db.select(sql);
+    if (check_res.length === 0) {
+        sql = ''
+    }
+
+    sql = `insert into ${req.params.table}`;
+    let ins_sql = `insert into ${req.params.table}`;
+    let rows = [];
+    let i = 0;
+    await FileHelper.processLineByLine(req.params.file, async (line, n) => {
+        // FileHelper.readByLine(req.params.file, async (line) => {
+        const vals = line.split('\t').map((item) => item.substr(0, 2000));
+        i++;
+        if (i === 1) {
+            ins_sql += '(' + vals.join(',') + ') values(' + vals.map((name, index) => `to_char(:${index + 1})`) + ')'
+            // создание таблицы
+            if (check_res.length === 0) {
+                sql = `CREATE TABLE ${req.params.table}(` + vals.map((name) => `${name} VARCHAR2(2000)`).join(',') + ')';
+                try {
+                    await db.execute(sql);
+                }
+                catch (ex) {
+                    log.error(ex);
+                }
+            }
+        }
+        else {
+            rows = [...rows, ...[vals]];
+            if (rows.length >= 1000) {
+                try {
+                    const data = rows;
+                    rows = [];
+                    const res = await db.insertMany(ins_sql, data);
+                    if (res.success === false) {
+                        console.log(res);
+                        console.log(data.length);
+                    }
+                }
+                catch (ex) {
+                    log.error(ex.message + ' ' + ex.stack);
+                    // log.error(ex.message + ' ' + ex.stack);
+                }
+            }
+        }
+    });
+    await db.insertMany(ins_sql, rows);
+
+    res.json({ success: true });
+});
+
 router.post('/v1/file', async (req, res) => {
     console.log(req.headers);
     res.json({ success: true });
 });
+
+
+router.get('/v1/refs/deps', async (req, res) => {
+    try {
+        const rows = await db.selectSqlName('dep', {});
+        res.json(rows);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
+    try {
+        const rows = await db.select(`SELECT SIO_DIAGNOSTICS.FIND_DUPLICATED_DOGS(${req.params.dep_id}) as X FROM dual`, {});
+        const lob = rows[0].X;
+        res.send(lob);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
+    try {
+        const rows = await db.select(`SELECT SIO_DIAGNOSTICS.FIND_DUPLICATED_DOGS(${req.params.dep_id}) as X FROM dual`, {});
+        const lob = rows[0].X;
+        res.send(lob);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
 
 
 
