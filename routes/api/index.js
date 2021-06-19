@@ -549,6 +549,16 @@ router.get('/v1/links/sio2ise/:key', async (req, res) => {
                 items.push(ise_node);
             }
         }
+        // обратная хронологическая сортировка пар по дате их создания
+        items.sort((a, b) => {
+            if (a.visible.dt.valueOf() < b.visible.dt.valueOf()) {
+                return 1;
+            }
+            if (a.visible.dt.valueOf() > b.visible.dt.valueOf()) {
+                return -1;
+            }
+            return 0;
+        });
         res.send({ ise_nodes: items });
     }
     catch (ex) {
@@ -712,6 +722,31 @@ router.get('/v1/test', async (req, res) => {
     }
 });
 
+router.get('/v1/diag/attp_vol/:attp_ies', async (req, res) => {
+    try {
+        const sql = `SELECT SIO_DIAGNOSTICS.GET_DIFF_VOLUMES_DETAILS('http://trinidata.ru/sigma/${req.params.attp_ies}') AS x FROM dual`;
+        let rows = await db.select(sql, {});
+        res.send(rows[0].X);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+router.get('/v1/diag/pu_doubles/:dep_id', async (req, res) => {
+    try {
+        const sql = `SELECT SIO_DIAGNOSTICS.FIND_DUPLICATED_PU(${req.params.dep_id}) AS X FROM dual`;
+        let rows = await db.select(sql, {});
+        res.send(rows[0].X);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
+
+
 router.get('/v1/links/sio_item/:type/:id', async (req, res) => {
 
     try {
@@ -781,8 +816,9 @@ router.get('/v1/upload/:table/:file', async (req, res) => {
     let rows = [];
     let i = 0;
     await FileHelper.processLineByLine(req.params.file, async (line, n) => {
-        // FileHelper.readByLine(req.params.file, async (line) => {
-        const vals = line.split('\t').map((item) => item.substr(0, 2000));
+        // const line2 = line.substr(1, line.length - 2).replace(/";"/g, '\t');
+        const line2 = line;
+        const vals = line2.split('\t').map((item) => item.substr(0, 2000));
         i++;
         if (i === 1) {
             ins_sql += '(' + vals.join(',') + ') values(' + vals.map((name, index) => `to_char(:${index + 1})`) + ')'
@@ -850,17 +886,17 @@ router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
     }
 });
 
-router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
-    try {
-        const rows = await db.select(`SELECT SIO_DIAGNOSTICS.FIND_DUPLICATED_DOGS(${req.params.dep_id}) as X FROM dual`, {});
-        const lob = rows[0].X;
-        res.send(lob);
-    }
-    catch (ex) {
-        res.status(500).json({ msg: ex.message }).end();
-        log.error(ex);
-    }
-});
+// router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
+//     try {
+//         const rows = await db.select(`SELECT SIO_DIAGNOSTICS.FIND_DUPLICATED_DOGS(${req.params.dep_id}) as X FROM dual`, {});
+//         const lob = rows[0].X;
+//         res.send(lob);
+//     }
+//     catch (ex) {
+//         res.status(500).json({ msg: ex.message }).end();
+//         log.error(ex);
+//     }
+// });
 
 
 
