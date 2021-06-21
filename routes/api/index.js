@@ -886,17 +886,32 @@ router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
     }
 });
 
-// router.get('/v1/refs/dogs/double/:dep_id', async (req, res) => {
-//     try {
-//         const rows = await db.select(`SELECT SIO_DIAGNOSTICS.FIND_DUPLICATED_DOGS(${req.params.dep_id}) as X FROM dual`, {});
-//         const lob = rows[0].X;
-//         res.send(lob);
-//     }
-//     catch (ex) {
-//         res.status(500).json({ msg: ex.message }).end();
-//         log.error(ex);
-//     }
-// });
+router.get('/v1/refs/pu/double/:dep_id', async (req, res) => {
+    try {
+        const answer = {};
+        const tag_rows = await db.select(`SELECT x.TAG, COUNT(1) num FROM DIAG_REPORT x WHERE code = 'NO-PU-PAIR.${req.params.dep_id}' GROUP BY x.TAG ORDER BY X.TAG`, {});
+        for(const tag_row of tag_rows){
+            const tag = tag_row.TAG;
+            answer[tag] = {
+                count: tag_row.NUM,
+                nums: {}
+            }
+            const rows = await db.select(`SELECT DISTINCT x.NAME PU, x.VAL ABON FROM DIAG_REPORT x WHERE code = 'NO-PU-PAIR.${req.params.dep_id}' AND x.TAG = '${tag_row.TAG}' ORDER BY 1, 2`, {});
+            let num = '';
+            for(const row of rows){
+                if(answer[tag].nums[row.PU] === undefined){
+                    answer[tag].nums[row.PU] = [];
+                }
+                answer[tag].nums[row.PU].push(row.ABON);
+            }
+        }
+        res.send(answer);
+    }
+    catch (ex) {
+        res.status(500).json({ msg: ex.message }).end();
+        log.error(ex);
+    }
+});
 
 
 

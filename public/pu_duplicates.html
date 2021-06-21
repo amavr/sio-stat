@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="shortcut icon" href="/img/favicon.png" type="image/png">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/loader-default.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+    <title>Дубли приборов учета</title>
+    <style>
+        
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <div style="margin: 20px;">
+            <div class="mb-3">
+                <label for="filePath" class="form-label">Филиал</label>
+                <select id="depList" v-model="cur_dep" class="form-select" aria-label="default select example">
+                    <option v-for="(dep,i) in deps" :key="dep.KODP" :value="dep.KODP">
+                        {{ `${dep.NAME} (${dep.CUR_YM})` }}</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button id="btnOk" type="submit" class="btn btn-primary mb-3"
+                    v-on:click="loadDuplicates">Искать</button>
+            </div>
+        </div>
+        <pre class="error-box" v-show="error" style="display: none;">{{error}}</pre>
+
+        <div style="margin: 0 20px;" v-for="(val, key) in groups" :key="key">
+            <div>{{key}}: {{val.count}}</div>
+            <table class="table table-striped" style="border: 1px #ddd solid;">
+                <tr>
+                    <th style="text-align: left;">Номер ПУ</th>
+                    <th style="text-align: left;">Абонент</th>
+                </tr>
+                <tr v-for="(ids, num) in val.nums" :key="num">
+                    <td>{{num}}</td>
+                    <td>
+                        <div v-for="id in ids">{{id}}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
+    </div>
+
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                error: null,
+                waiting: false,
+                deps: [],
+                cur_dep: null,
+                groups: null
+            },
+            created() {
+                console.log('Here!');
+
+                try {
+                    this.loadDep();
+                } catch (ex) {
+                    this.error = ex.message;
+                }
+            },
+            mounted: function () {},
+            methods: {
+                loadDep: async function () {
+                    this.waiting = true;
+                    try {
+                        this.deps = [];
+                        const res = await fetch(`/api/v1/refs/deps`);
+                        if (res.status === 500) {
+                            const answer = await res.json();
+                            this.error = `Информация по этому ID недоступна: \r\n${answer.msg}`;
+                        } else if (res.status === 400) {
+                            const answer = await res.json();
+                            this.error = answer.msg;
+                        } else if (res.status === 404) {
+                            const answer = await res.json();
+                            this.error = answer.msg;
+                        } else {
+                            this.deps = await res.json();
+                            this.deps.sort((a, b) => {
+                                if (a.NAME < b.NAME) {
+                                    return -1;
+                                }
+                                if (a.NAME > b.NAME) {
+                                    return 1;
+                                }
+                                return 0;
+                            });
+                            document.getElementById('depList').value = this.deps[0].KODP;
+                            this.cur_dep = this.deps[0].KODP;
+                        }
+                        // console.log(this.items);
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                },
+                loadDuplicates: async function () {
+                    this.waiting = true;
+                    try {
+                        this.groups = null;
+                        this.error = null;
+                        const res = await fetch(`/api/v1/refs/pu/double/${this.cur_dep}`);
+                        if (res.status === 500 || res.status === 400 || res.status === 404) {
+                            const answer = await res.json();
+                            this.error = answer.msg;
+                        } else {
+                            const data = await res.json();
+                            this.groups = data;
+                        }
+                        // console.log(this.items);
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                },
+                openPairs: async function (e) {
+                    e.preventDefault();
+                    this.waiting = true;
+                    try {
+                        this.error = null;
+                        const num = e.srcElement.innerText;
+                        console.log(e.srcElement);
+
+                        const res = await fetch(`/api/v1/links/ise2sio/${num}/1`);
+                        if (res.status === 500 || res.status === 400 || res.status === 404) {
+                            const answer = await res.json();
+                            this.error = answer.msg;
+                        } else {
+                            const rows = await res.json();
+                            console.log(rows);
+                            for(const row of rows){
+                                window.open(`/siotree.html?sio=${row.ID_IES.substr(26)}`, row.ID_IES, "menubar=off,toolbar=off,location=yes");                                
+                            }
+                        }
+                    } catch (ex) {
+                        this.error = ex.message;
+                    }
+                    this.waiting = false;
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>
