@@ -21,6 +21,7 @@ console.log("Client:".padStart(ofs), oracledb.oracleClientVersionString);
 console.log("".padEnd(32, '='));
 
 const apiRouter = require('./routes/api');
+const repRouter = require('./routes/api/rep');
 const app = express();
 app.node_port = cfg.port;
 
@@ -51,6 +52,7 @@ app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/api/v1/rep', repRouter);
 app.use('/api', apiRouter);
 
 app.use('/login', (req, res, next) => {

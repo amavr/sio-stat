@@ -105,11 +105,14 @@ class BaseNode {
             error.code = 404;
             throw error;
         }
+
+        const node = this.create(rows[0]);
         if (rows.length > 1) {
-            throw new Error(`MORE ONE ${this.name} FOUND WITH KEY ${id} \n${sql}`);
+            // throw new Error(`MORE ONE ${this.name} FOUND WITH KEY ${id} \n${sql}`);
+            node.visible.note = `HAS ${rows.length} PARENTS`;
         }
 
-        return this.create(rows[0]);
+        return node;
     }
 
     async loadSioChildren() {

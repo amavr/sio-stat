@@ -42,25 +42,29 @@
         <div class="container">
             <form>
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="ИНН абонента" aria-label="ИНН абонента"
-                        aria-describedby="btnINN">
+                    <input id="inpINN" type="text" class="form-control" placeholder="ИНН абонента" aria-label="ИНН абонента"
+                    v-on:keyup.enter="find($event, 'ABON_INN', 'ABON_KODP')"
+                    aria-describedby="btnINN">
                     <button v-on:click="find($event, 'ABON_INN', 'ABON_KODP')" class="btn btn-primary" type="button"
                         id="btnINN">Искать</button>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="№ договора" aria-label="№ договора"
-                        aria-describedby="btnDogNum">
+                    <input id="inpDOG" type="text" class="form-control" placeholder="№ договора" aria-label="№ договора"
+                    v-on:keyup.enter="find($event, 'DG_NDOG', 'DG_KOD_DOG')"
+                    aria-describedby="btnDogNum">
                     <button v-on:click="find($event, 'DG_NDOG', 'DG_KOD_DOG')" class="btn btn-primary" type="button"
                         id="btnDogNum">Искать</button>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="№ объекта" aria-label="№ объекта"
-                        aria-describedby="btnObjNum">
+                    <input id="inpOBJ" type="text" class="form-control" placeholder="№ объекта" aria-label="№ объекта"
+                    v-on:keyup.enter="find($event, 'NOBJ_NUM', 'NOBJ_KOD_NUMOBJ')"
+                    aria-describedby="btnObjNum">
                     <button v-on:click="find($event, 'NOBJ_NUM', 'NOBJ_KOD_NUMOBJ')" class="btn btn-primary"
                         type="button" id="btnObjNum">Искать</button>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="№ счетчика" aria-label="№ счетчика"
+                    <input id="inpCNT" type="text" class="form-control" placeholder="№ счетчика" aria-label="№ счетчика"
+                        v-on:keyup.enter="find($event, 'PU_NUM', 'PU_KOD_POINT_PU')"
                         aria-describedby="btnPUNum">
                     <button v-on:click="find($event, 'PU_NUM', 'PU_KOD_POINT_PU')" class="btn btn-primary" type="button"
                         id="btnPUNum">Искать</button>
@@ -94,6 +98,15 @@
             },
             mounted: function () {
                 this.$root.$on(EVENT_FIND, this.find);
+
+                // for (const inp of document.getElementsByTagName('input')) {
+                //     inp.addEventListener('keypress', function (e, item) {
+                //         if (e.which == 13) {
+                //             this.find($event, 'PU_NUM', 'PU_KOD_POINT_PU')                
+                //         }
+                //     });
+                // }
+
             },
             methods: {
                 showModal: function (doShow) {
@@ -133,6 +146,15 @@
             document.querySelector('#btn-close-tran').addEventListener('click', function () {
                 document.querySelector('#myModal').style.display = 'none';
             });
+
+            // for (const inp of document.getElementsByTagName('input')) {
+            //     inp.addEventListener('keypress', function (e, item) {
+            //         if (e.which == 13) {
+            //             console.log(item);
+            //         }
+            //     });
+            // }
+
         });
     </script>
 

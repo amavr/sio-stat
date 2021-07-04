@@ -436,7 +436,7 @@
                 const labels = await me.ajax.query("/api/v1/times/labels", {
                     method: "GET"
                 });
-                console.log(labels);
+                // console.log(labels);
                 view.showLabels(labels, this.onLabelClick);
                 view.showTransactList([], me.onTranListClick);
                 view.showTransactRows([], me.onRowClick);
