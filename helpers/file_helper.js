@@ -6,6 +6,8 @@ const readline = require('readline');
 const lineReader = require('line-reader');
 const fsp = fs.promises;
 const moment = require('moment');
+const iconv = require('iconv-lite');
+
 const Utils = require('./utils');
 const { config } = require('process');
 
@@ -60,16 +62,15 @@ class FileHelper {
         });
     }
 
-    static readByLine(filePath, onLine) {
-        lineReader.eachLine(filePath, (line, last) => {
-            onLine(line);
-        });
-    }
+    // static readByLine(filePath, onLine) {
+    //     lineReader.eachLine(filePath, (line, last) => {
+    //         onLine(line);
+    //     });
+    // }
 
     static processLineByLine(filePath, onLine) {
         return new Promise((resolve, reject) => {
-
-            const stream = fs.createReadStream(filePath);//, { encoding: 'win1251' });
+            const stream = fs.createReadStream(filePath);
 
             const rl = readline.createInterface({
                 input: stream,
@@ -78,12 +79,31 @@ class FileHelper {
             // Note: we use the crlfDelay option to recognize all instances of CR LF
             // ('\r\n') in input.txt as a single line break.
 
-
+           
             stream.on('end', () => resolve());
             stream.on('error', () => reject(error));
             rl.on('line', onLine);
         });
+    }
 
+    // ВНИМАНИЕ! здесь кодировка 1251!!!
+    static readLines(filePath, onLine, onComplete) {
+        return new Promise((resolve, reject) => {
+            const stream = fs.createReadStream(filePath)
+                .pipe(iconv.decodeStream('win1251'));
+
+            const rl = readline.createInterface({
+                input: stream,
+                crlfDelay: Infinity
+            });
+            // Note: we use the crlfDelay option to recognize all instances of CR LF
+            // ('\r\n') in input.txt as a single line break.
+           
+            stream.on('end', () => resolve());
+            stream.on('error', () => reject(error));
+            rl.on('line', onLine);
+            rl.on('close', onComplete);
+        });
     }
 
     static async saveObj(filePath, obj) {

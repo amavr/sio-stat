@@ -6,6 +6,9 @@ const log4js = require('log4js');
 const moment = require('moment');
 const sqlFormatter = require('sql-formatter');
 const onHeaders = require('on-headers');
+const iconv = require('iconv-lite');
+const JSZip = require("jszip");
+const fs = require('fs');
 
 const cfg = require('../../config').api;
 const CONST = require('../../resources/const');
@@ -347,8 +350,13 @@ router.get('/v1/log/errors/:labelId', async (req, res) => {
 router.post('/v1/log/transacts', async (req, res) => {
     try {
         const msg_expr = req.body.msg ? req.body.msg.substr(0, 50) + '%' : null;
-        const rows = await db.selectSqlName('mdmlog.transacts', { label_id: req.body.labelId, msg: msg_expr });
+
+        const dates = await db.selectSqlName('mdmlog.label_time_range', { label_id: req.body.labelId });
+        const rows = await db.selectSqlName('mdmlog.transacts_dt', { dt_beg: dates[0].BEG_DT, dt_end: dates[0].END_DT, msg: msg_expr });
         res.send(rows);
+
+        // const rows = await db.selectSqlName('mdmlog.transacts', { label_id: req.body.labelId, msg: msg_expr });
+        // res.send(rows);
     }
     catch (ex) {
         res.status(500).json({ msg: ex.message }).end();
@@ -799,63 +807,136 @@ router.get('/v1/stat/objects/added', async (req, res) => {
     res.send(data);
 });
 
+// загрузка АСКУЭ файла
 router.get('/v1/upload/:table/:file', async (req, res) => {
     console.log(req.headers);
     console.log(req.params.file);
     console.log(req.params.table);
 
+    const dir = "D:\\IE\\files\\archives";
+    req.params.dir = dir;
+    unzipAskueFile(req.params);
+
+
+    // new JSZip.external.Promise(function (resolve, reject) {
+    //     fs.readFile(zpath, function(err, data) {
+    //         if (err) {
+    //             reject(e);
+    //         } else {
+    //             resolve(data);
+    //         }
+    //     });
+    // }).then(function (data) {
+    //     return JSZip.loadAsync(data);
+    // });
+
+    res.json({ success: true });
+});
+
+const unzipAskueFileX = async function (params) {
+    const zipPath = path.join(params.dir, params.file);
+    log.debug(`BEG UNZIP FILE ${zipPath}`);
+    const data = await FileHelper.read(zipPath);
+    try {
+        const zip = await JSZip.loadAsync(data);
+        if (Object.keys(zip.files).length > 0) {
+            const key = zip.files[Object.keys(zip.files)[0]];
+            zip.file(key.name).async('nodebuffer').then(function (content) {
+                var dest = path.join(params.dir, params.file.replace(/\.zip/gi, ''));
+                fs.writeFileSync(dest, content);
+                log.debug(`END UNZIP FILE TO ${dest}`);
+                // saveAskueToDB(dest, params.table);
+            });
+        }
+    }
+    catch (ex) {
+        log.error(ex);
+    }
+}
+
+const unzipAskueFile = function (params) {
+    const zipPath = path.join(params.dir, params.file);
+    log.debug(`BEG UNZIP FILE ${zipPath}`);
+    fs.readFile(zipPath, function (err, data) {
+        if (!err) {
+            JSZip.loadAsync(data).then(function (zip) {
+                if (Object.keys(zip.files).length > 0) {
+                    const key = zip.files[Object.keys(zip.files)[0]];
+                    zip.file(key.name).async('nodebuffer').then(function (content) {
+                        var dest = path.join(params.dir, params.file.replace(/\.zip/gi, ''));
+                        fs.writeFileSync(dest, content);
+                        log.debug(`END UNZIP FILE TO ${dest}`);
+                        saveAskueToDB(dest, params.table);
+                    });
+                }
+            });
+        }
+    });
+}
+
+const saveAskueToDB = async function (filePath, tableName) {
     // проверка существования таблицы
-    let sql = `SELECT * FROM user_tables WHERE TABLE_NAME = '${req.params.table.toUpperCase()}'`;
+    let sql = `SELECT * FROM user_tables WHERE TABLE_NAME = '${tableName.toUpperCase()}'`;
     const check_res = await db.select(sql);
     if (check_res.length === 0) {
         sql = ''
     }
 
-    sql = `insert into ${req.params.table}`;
-    let ins_sql = `insert into ${req.params.table}`;
+    sql = `insert into ${tableName}`;
+    let ins_sql = `insert into ${tableName}`;
     let rows = [];
     let i = 0;
-    await FileHelper.processLineByLine(req.params.file, async (line, n) => {
-        // const line2 = line.substr(1, line.length - 2).replace(/";"/g, '\t');
-        const line2 = line;
-        const vals = line2.split('\t').map((item) => item.substr(0, 2000));
-        i++;
-        if (i === 1) {
-            ins_sql += '(' + vals.join(',') + ') values(' + vals.map((name, index) => `to_char(:${index + 1})`) + ')'
-            // создание таблицы
-            if (check_res.length === 0) {
-                sql = `CREATE TABLE ${req.params.table}(` + vals.map((name) => `${name} VARCHAR2(2000)`).join(',') + ')';
+
+
+    FileHelper.beg_dt = moment();
+    log.debug('BEG ASKUE LOADING');
+    await FileHelper.readLines(filePath,
+        async (line, n) => {
+            // const line2 = line.substr(1, line.length - 2).replace(/";"/g, '\t');
+            // const vals = line2.split('\t').map((item) => item.substr(0, 2000));
+            // const line2 = line.substr(1, line.length - 2).replace(/";"/g, '\t');
+            const vals = line.substr(1, line.length - 2).split('";"').map((item) => item.substr(0, 2000));
+
+            i++;
+            if (i === 1) {
+                ins_sql += '(' + vals.join(',') + ') values(' + vals.map((name, index) => `to_char(:${index + 1})`) + ')'
+                // создание таблицы
+                sql = (check_res.length === 0)
+                    ? `CREATE TABLE ${tableName}(` + vals.map((name) => `${name} VARCHAR2(2000)`).join(',') + ')'
+                    : `TRUNCATE TABLE ${tableName}`;
+
                 try {
                     await db.execute(sql);
                 }
                 catch (ex) {
                     log.error(ex);
                 }
+
             }
-        }
-        else {
-            rows = [...rows, ...[vals]];
-            if (rows.length >= 1000) {
-                try {
-                    const data = rows;
-                    rows = [];
-                    const res = await db.insertMany(ins_sql, data);
-                    if (res.success === false) {
-                        console.log(res);
-                        console.log(data.length);
+            else {
+                rows = [...rows, ...[vals]];
+                if (rows.length >= 1000) {
+                    try {
+                        const data = rows;
+                        rows = [];
+                        const res = await db.insertMany(ins_sql, data);
+                        if (res.success === false) {
+                            console.log(res);
+                            console.log(data.length);
+                        }
+                    }
+                    catch (ex) {
+                        log.error(ex.message + ' ' + ex.stack);
+                        // log.error(ex.message + ' ' + ex.stack);
                     }
                 }
-                catch (ex) {
-                    log.error(ex.message + ' ' + ex.stack);
-                    // log.error(ex.message + ' ' + ex.stack);
-                }
             }
-        }
-    });
+        },
+        async () => {
+            log.debug('END ASKUE LOADING. DURATION: ' + moment.utc(moment().diff(FileHelper.beg_dt)).format('mm:ss'));
+        });
     await db.insertMany(ins_sql, rows);
-
-    res.json({ success: true });
-});
+}
 
 router.post('/v1/file', async (req, res) => {
     console.log(req.headers);
@@ -890,7 +971,7 @@ router.get('/v1/refs/pu/double/:dep_id', async (req, res) => {
     try {
         const answer = {};
         const tag_rows = await db.select(`SELECT x.TAG, COUNT(1) num FROM DIAG_REPORT x WHERE code = 'DOUBLE-PU.${req.params.dep_id}' GROUP BY x.TAG ORDER BY X.TAG`, {});
-        for(const tag_row of tag_rows){
+        for (const tag_row of tag_rows) {
             const tag = tag_row.TAG;
             answer[tag] = {
                 count: tag_row.NUM,
@@ -898,8 +979,8 @@ router.get('/v1/refs/pu/double/:dep_id', async (req, res) => {
             }
             const rows = await db.select(`SELECT DISTINCT x.NAME PU, x.VAL ABON FROM DIAG_REPORT x WHERE code = 'DOUBLE-PU.${req.params.dep_id}' AND x.TAG = '${tag_row.TAG}' ORDER BY 1, 2`, {});
             let num = '';
-            for(const row of rows.slice(0, 200)){
-                if(answer[tag].nums[row.PU] === undefined){
+            for (const row of rows.slice(0, 200)) {
+                if (answer[tag].nums[row.PU] === undefined) {
                     answer[tag].nums[row.PU] = [];
                 }
                 answer[tag].nums[row.PU].push(row.ABON);

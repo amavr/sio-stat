@@ -60,12 +60,14 @@
 
         Vue.component('tab', {
             template: `
-            <table class="props">
-                <tr v-for="(val, name, index) in obj.visible" class="prop">
-                    <td>{{name}}</td>
-                    <td>{{val}}</td>
-                </tr>
-            </table>
+            <div class="col">
+                <table class="props" v-bind:class="obj.visible.tag">
+                    <tr v-for="(val, name, index) in obj.visible" class="prop">
+                        <td>{{name}}</td>
+                        <td>{{val}}</td>
+                    </tr>
+                </table>
+            </div>
             `,
             props: ['obj'],
             methods: {
@@ -81,7 +83,7 @@
 <div>
     <details v-for="(item, index) in nodes" :key="item.id" :open="item.selected ? true : false" 
         v-bind:class="item.audit.state" >
-        <summary v-bind:class="{'selected': item.equals}" v-on:click="loadChildren($event, item)"><i v-bind:class="'bi bi-' + item.icon"></i><span>{{item.title}}</span></summary>
+        <summary v-bind:class="{'selected': item.equals}" v-on:click="loadChildren($event, item)"><i v-bind:class="'bi bi-' + item.icon"></i><span>{{item.title}}</span><span class="id-title">{{item.id}}</span></summary>
         <div>
             <div v-show="item.audit.state != 'NS_GOOD'" class="problems">
                 <div>Проблема: {{item.audit.state}}</div>
@@ -94,9 +96,10 @@
                     v-bind:aria-controls="'ise-' + item.id"
                     v-on:click="showIseInfo($event, item)">Информация из ИСЭ</a>
                 <a v-for="(val, name) in item.refs" v-bind:href="val" class="btn btn-outline-primary btn-sm" target="_blank" v-on:click="openVolumes($event, val);">{{name}}</a>
-                <div class="ise collapse" v-bind:id="'ise-' + item.id">
-                    <hr color="#ccc" size="1"/>
-                    <tab v-for="(item, index) in item.ise_nodes" :key="item.id" :obj="item" v-bind:class="item.visible.tag"></tab>
+                <div class="ise collapse container" v-bind:id="'ise-' + item.id">
+                    <div class="row">
+                        <tab v-for="(item, index) in item.ise_nodes" :key="item.id" :obj="item" v-bind:class="item.visible.tag"></tab>
+                    </div>
                 </div>
             </div>
         </div>

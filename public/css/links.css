@@ -71,7 +71,8 @@ details>summary {
 }
 
 div.ise {
-    margin-top: 4px;
+    margin: 16px 0;    
+    max-width: 100%;
 }
 
 div.props {
@@ -113,24 +114,29 @@ table.props {
 table.props td {
     border-spacing: 0;
     margin-bottom: 10px;
+    white-space: nowrap;
 }
 
-div.ise>table.props {
+div.ise>.row>.col{
+    flex-grow: inherit;
+}
+
+div.ise>.row>.col>table.props {
     border-radius: 4px;
     padding: 4px;
     color: #fff;
     margin: 2px 0;
 }
 
-div.ise>table.FF {
+div.ise>.row>.col>table.FF {
     background-color: #009f4d;
 }
 
-div.ise>table.FP {
+div.ise>.row>.col>table.FP {
     background-color: #0077c8;
 }
 
-div.ise>table.CH {
+div.ise>.row>.col>table.CH {
     background-color: #a51890;
 }
 
@@ -199,4 +205,9 @@ div.problems table {
 
 details.bad>summary>i.bi {
     background-color: #fe5000;
+}
+
+.id-title {
+    margin-left: 2em;
+    font-size: smaller;
 }

@@ -25,54 +25,23 @@
 
     <div id="app">
         <div style="margin: 20px;">
-            <div class="mb-3">
-                <label for="filePath" class="form-label">Филиал</label>
-                <select id="depList" v-model="cur_dep" class="form-select" aria-label="default select example">
-                    <option v-for="(dep,i) in deps" :key="dep.KODP" :value="dep.KODP">
-                        {{ `${dep.NAME} (${dep.CUR_YM})` }}</option>
-                </select>
-            </div>
-            <!-- <div class="input-group">
-                <input type="text" class="form-control" placeholder="Период">
-                <button class="btn btn-primary" type="button">За неделю</button>
-                <button class="btn btn-primary" type="button">За месяц</button>
-            </div> -->
-            <div class="col-auto">
-                <button id="btnLoadWeek" type="submit" class="btn btn-primary mb-3" v-on:click="loadWeek">За
-                    неделю</button>
-                <button id="btnLoadMonth" type="submit" class="btn btn-primary mb-3" v-on:click="loadMonth">За
-                    месяц</button>
-            </div>
-        </div>
-        <pre class="error-box" v-show="error" style="display: none;">{{error}}</pre>
-
-        <div style="margin: 0 20px;">
-            <div>Найдено: {{rows ? rows.length : 0}}</div>
-            <table class="table table-striped" style="border: 1px #ddd solid;">
+            <table cellpadding="4" class="table table-striped w-auto">
                 <tr>
-                    <th>Дата</th>
-                    <th>ИНН</th>
-                    <th>Абонент</th>
-                    <th>№ Договора</th>
-                    <th>№ ЭО</th>
-                    <th>Имя ЭО</th>
-                    <th>KODP</th>
-                    <th>KOD_DOG</th>
-                    <th>KOD_NUMOBJ</th>
+                    <th>Филиал</th>
+                    <th>YM</th>
+                    <th colspan="2">Период</th>
                 </tr>
-                <tr class="data" v-for="(row,i) in rows" :key="i">
-                    <td nowrap>{{row.DT}}</td>
-                    <td nowrap>{{row.ABN_INN}}</td>
-                    <td nowrap>{{row.ABN_NAME}}</td>
-                    <td nowrap>{{row.DOG_NUM}}</td>
-                    <td nowrap>{{row.OBJ_NUM}}</td>
-                    <td nowrap>{{row.OBJ_NAME}}</td>
-                    <td nowrap>{{row.ABN_ID}}</td>
-                    <td nowrap>{{row.DOG_ID}}</td>
-                    <td nowrap>{{row.OBJ_ID}}</td>
+                <tr v-for="(dep,i) in deps" :key="dep.KODP" :value="dep.KODP">
+                    <td>{{dep.NAME}}</td>
+                    <td>{{dep.CUR_YM}}</td>
+                    <td><a v-bind:href="'/api/v1/rep/added/' + dep.KODP + '/xls?period=w'" target="_blank">Неделя</a>
+                    </td>
+                    <td><a v-bind:href="'/api/v1/rep/added/' + dep.KODP + '/xls?period=m'" target="_blank">Месяц</a>
+                    </td>
                 </tr>
             </table>
         </div>
+        <pre class="error-box" v-show="error" style="display: none;">{{error}}</pre>
 
         <div id="loader" v-bind:class="(waiting)?'is-active':''" class="loader loader-default"></div>
     </div>
@@ -123,8 +92,6 @@
                                 }
                                 return 0;
                             });
-                            document.getElementById('depList').value = this.deps[0].KODP;
-                            this.cur_dep = this.deps[0].KODP;
                         }
                         // console.log(this.items);
                     } catch (ex) {
@@ -166,31 +133,6 @@
                     const dt_end = moment().format('YYYY-MM-DD');
                     await this.loadAdded(dt_beg, dt_end);
                 },
-                openPairs: async function (e) {
-                    e.preventDefault();
-                    this.waiting = true;
-                    try {
-                        this.error = null;
-                        const num = e.srcElement.innerText;
-                        console.log(e.srcElement);
-
-                        const res = await fetch(`/api/v1/links/ise2sio/${num}/1`);
-                        if (res.status === 500 || res.status === 400 || res.status === 404) {
-                            const answer = await res.json();
-                            this.error = answer.msg;
-                        } else {
-                            const rows = await res.json();
-                            console.log(rows);
-                            for (const row of rows) {
-                                window.open(`/siotree.html?sio=${row.ID_IES.substr(26)}`, row.ID_IES,
-                                    "menubar=off,toolbar=off,location=yes");
-                            }
-                        }
-                    } catch (ex) {
-                        this.error = ex.message;
-                    }
-                    this.waiting = false;
-                }
             }
         });
     </script>
